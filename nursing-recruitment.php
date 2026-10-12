@@ -376,12 +376,6 @@
           <li><a href="#introduction">Nursing roles we recruit for</a></li>
           <li><a href="#types-of-cookies">What you need to apply</a></li>
           <li><a href="#how-we-use-cookies">The checks we complete</a></li>
-          <li><a href="#why-we-process">Legal basis</a></li>
-          <li><a href="#lawful-basis">How to manage your cookie preferences</a></li>
-          <li><a href="#sharing-information">Cookies and your personal data</a></li>
-          <li><a href="#international-transfers">Your rights and complaints</a></li>
-          <li><a href="#retention">Changes to this policy</a></li>
-          <li><a href="#complaints">Contact us</a></li>
         </ol>
       </aside>
 
