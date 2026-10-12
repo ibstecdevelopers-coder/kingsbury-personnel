@@ -1,0 +1,460 @@
+<head>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/jobs.css" />
+  <style>
+    a.inline-link {
+    color: #7c3aed;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  #cookie-consent-banner {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: #0b1f3a;
+    color: #f5f5f5;
+    padding: 20px;
+    z-index: 9999;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+    font-family: Arial, Helvetica, sans-serif;
+    display: none;
+  }
+  #cookie-consent-banner.visible { display: block; }
+  #cookie-consent-banner .cc-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  #cookie-consent-banner p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    flex: 1 1 400px;
+  }
+  #cookie-consent-banner a {
+    color: #9ecbff;
+    text-decoration: underline;
+  }
+  .cc-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .cc-btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .cc-btn-accept { background: #2e7d32; color: #fff; }
+  .cc-btn-reject { background: transparent; color: #fff; border: 1px solid #fff; }
+  .cc-btn-manage { background: transparent; color: #9ecbff; border: 1px solid #9ecbff; }
+  .cc-btn-policy {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #9ecbff;
+  }
+
+  /* Preferences modal */
+  #cookie-prefs-modal,
+  #cookie-policy-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  #cookie-prefs-modal.visible,
+  #cookie-policy-modal.visible { display: flex; }
+  .cc-modal-shell {
+    position: relative;
+    width: min(90vw, 480px);
+  }
+  .cc-policy-shell {
+    position: relative;
+    width: min(90vw, 700px);
+  }
+  .cc-modal-box,
+  .cc-policy-box {
+    background: #fff;
+    color: #222;
+    width: 100%;
+    border-radius: 8px;
+    padding: 24px;
+    font-family: Arial, Helvetica, sans-serif;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  .cc-policy-box {
+    max-width: 700px;
+  }
+  .cc-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .cc-modal-header h2 { margin: 0; font-size: 18px; }
+  .cc-close-modal-btn {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    z-index: 2;
+    border: 1px solid #d9d9d9;
+    background: #fff;
+    color: #333;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  .cc-category {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .cc-category:last-of-type { border-bottom: none; }
+  .cc-category-text h3 { margin: 0 0 4px; font-size: 15px; }
+  .cc-category-text p { margin: 0; font-size: 13px; color: #555; }
+  .cc-switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .cc-switch input { opacity: 0; width: 0; height: 0; }
+  .cc-slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: #ccc; border-radius: 24px; transition: 0.2s;
+  }
+  .cc-slider:before {
+    content: ""; position: absolute; height: 18px; width: 18px;
+    left: 3px; bottom: 3px; background: white; border-radius: 50%;
+    transition: 0.2s;
+  }
+  .cc-switch input:checked + .cc-slider { background: #2e7d32; }
+  .cc-switch input:checked + .cc-slider:before { transform: translateX(18px); }
+  .cc-switch input:disabled + .cc-slider { background: #999; cursor: not-allowed; }
+  .cc-modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .cc-policy-body {
+    color: #333;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .cc-policy-body h3 {
+    margin: 18px 0 8px;
+    font-size: 16px;
+  }
+  .cc-policy-body p,
+  .cc-policy-body ul {
+    margin: 0 0 12px;
+  }
+  .cc-policy-body ul {
+    padding-left: 20px;
+  }
+</style>
+</head>
+<!-- COOKIE-CONSENT-START -->
+
+<!-- Banner -->
+<div id="cookie-consent-banner">
+  <div class="cc-inner">
+    <p>
+    <strong>Cookies on this website</strong><br>
+      We use essential cookies to make this site work. With your permission, we would also like to use analytics cookies to understand how the site is used, and marketing cookies to measure our job adverts on social media. Nothing except essential cookies is set until you choose.
+      <a href="./cookies-policy.php">Read our cookies policy</a>.
+    </p>
+    <div class="cc-buttons">
+     <!-- <button class="cc-btn cc-btn-policy" type="button"
+        onclick="window.location.href='./cookies-policy.php'">
+    Cookies Policy
+</button> -->
+      <button class="cc-btn cc-btn-manage" type="button"
+    onclick="openCookieSettings()">
+    Manage Preferences
+  </button>
+   <!--   <button class="cc-btn cc-btn-reject" onclick="ccRejectAll()">Reject
+        All</button> -->
+        <button class="cc-btn cc-btn-reject" type="button"
+    onclick="ccRejectNonEssential()">
+    Reject non-essential
+  </button>
+      <button class="cc-btn cc-btn-accept" onclick="ccAcceptAll()">Accept
+        All Cookies</button>
+    </div>
+  </div>
+</div>
+
+<!-- Preferences modal -->
+<div id="cookie-prefs-modal">
+  <div class="cc-modal-shell">
+    <button class="cc-close-modal-btn" type="button"
+      aria-label="Close cookie preferences"
+      onclick="closeCookieSettings()">×</button>
+    <div class="cc-modal-box">
+      <div class="cc-modal-header">
+        <h2>Cookie Preferences</h2>
+      </div>
+
+      <div class="cc-category">
+        <div class="cc-category-text">
+          <h3>Strictly Necessary</h3>
+          <p>Required for the site to function (e.g. security, load balancing).
+            Cannot be switched off.</p>
+        </div>
+        <label class="cc-switch">
+          <input type="checkbox" checked disabled>
+          <span class="cc-slider"></span>
+        </label>
+      </div>
+
+      <div class="cc-category">
+        <div class="cc-category-text">
+          <h3>Analytics</h3>
+          <p>Helps us understand how visitors use the site (e.g. Google
+            Analytics), so we can improve it.</p>
+        </div>
+        <label class="cc-switch">
+          <input type="checkbox" id="cc-cat-analytics">
+          <span class="cc-slider"></span>
+        </label>
+      </div>
+
+      <div class="cc-category">
+        <div class="cc-category-text">
+          <h3>Marketing</h3>
+          <p>Used by advertising or social media services (e.g. Facebook,
+            LinkedIn) to show relevant ads.</p>
+        </div>
+        <label class="cc-switch">
+          <input type="checkbox" id="cc-cat-marketing">
+          <span class="cc-slider"></span>
+        </label>
+      </div>
+
+      <div class="cc-modal-actions">
+        <button class="cc-btn cc-btn-reject"
+          onclick="closeCookieSettings()">Cancel</button>
+        <button class="cc-btn cc-btn-accept" onclick="ccSavePreferences()">Save
+          Preferences</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cookie policy modal -->
+<div id="cookie-policy-modal">
+  <div class="cc-policy-shell">
+    <button class="cc-close-modal-btn" type="button"
+      aria-label="Close cookies policy"
+      onclick="closeCookiePolicy()">×</button>
+    <div class="cc-policy-box">
+      <div class="cc-modal-header">
+        <h2>Cookies Policy</h2>
+      </div>
+
+      <div class="cc-policy-body">
+        <p>This explains how Kingsbury Personnel Ltd uses cookies on this
+          website.
+          For more detail, see our <a class="inline-link"
+            href="./privacy-policy.php">Privacy
+            Policy</a>.</p>
+
+        <h3><strong>What are cookies?</strong></h3>
+        <p>Small text files placed on your device when you visit our site. They
+          help the site work properly, remember your preferences, and show us
+          how
+          the site is used.</p>
+
+        <h3><strong>How we use them</strong></h3>
+        <p>We only set non-essential cookies with your consent, in line with UK
+          GDPR and PECR. You can change your choice anytime via Cookie
+          Settings.</p>
+
+        <h3><strong>Strictly Necessary</strong></h3>
+        <p>Required for the site to function, security, load balancing,
+          remembering your consent choice. Cannot be switched off.</p>
+
+        <h3><strong>Analytics</strong></h3>
+        <p>Helps us understand how visitors use the site (e.g. Google Analytics)
+          so we can improve it. Only set with your consent.</p>
+
+        <h3><strong>Marketing</strong></h3>
+        <p>Used by services like Facebook and LinkedIn to measure our campaigns
+          and show relevant content. Only set with your consent.</p>
+
+        <h3><strong>Third parties</strong></h3>
+        <p>Some cookies come from services on our pages, social platforms,
+          WhatsApp, and analytics tools, governed by their own policies.</p>
+
+        <h3><strong>How long they last</strong></h3>
+        <p>Session cookies clear when you close your browser. Persistent cookies
+          remain until they expire or you delete them.</p>
+
+        <h3><strong>Managing cookies</strong></h3>
+        <p>Use Cookie Settings in the footer anytime, or manage cookies through
+          your browser. Blocking some cookies may affect site functionality.</p>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var CC_STORAGE_KEY = 'kp_cookie_consent';
+
+  function ccGetConsent() {
+    try {
+      var raw = localStorage.getItem(CC_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+ function ccSaveConsent(consent) {
+  consent.timestamp = new Date().toISOString();
+  try {
+    localStorage.setItem(CC_STORAGE_KEY, JSON.stringify(consent));
+  } catch (e) { /* localStorage unavailable */ }
+
+  window.__kpCookieChoiceMade = true;          // works even if storage is blocked
+  document.body.classList.remove('kp-awaiting-consent');
+
+  ccApplyConsent(consent);
+  document.getElementById('cookie-consent-banner').classList.remove('visible');
+  closeCookieSettings();
+
+  document.dispatchEvent(new CustomEvent('kp:cookie-choice-made', { detail: consent }));
+}
+
+  function ccAcceptAll() {
+    ccSaveConsent({ necessary: true, analytics: true, marketing: true });
+  }
+
+  function ccRejectAll() {
+    ccSaveConsent({ necessary: true, analytics: false, marketing: false });
+  }
+  
+  function ccRejectNonEssential() {
+      ccSaveConsent({
+        necessary: true,
+        analytics: false,
+        marketing: false
+      });
+    }
+
+  function ccSavePreferences() {
+    ccSaveConsent({
+      necessary: true,
+      analytics: document.getElementById('cc-cat-analytics').checked,
+      marketing: document.getElementById('cc-cat-marketing').checked
+    });
+  }
+
+  function openCookieSettings() {
+    var existing = ccGetConsent();
+    document.getElementById('cc-cat-analytics').checked = existing ? existing.analytics : false;
+    document.getElementById('cc-cat-marketing').checked = existing ? existing.marketing : false;
+    document.getElementById('cookie-prefs-modal').classList.add('visible');
+  }
+
+  function closeCookieSettings() {
+    document.getElementById('cookie-prefs-modal').classList.remove('visible');
+  }
+
+  function openCookiePolicy() {
+    closeCookieSettings();
+    document.getElementById('cookie-policy-modal').classList.add('visible');
+  }
+
+  function closeCookiePolicy() {
+    document.getElementById('cookie-policy-modal').classList.remove('visible');
+  }
+
+  // Loads a script tag only after consent for its category is given.
+  function ccLoadScript(src, attrs) {
+    var s = document.createElement('script');
+    s.src = src;
+    if (attrs) {
+      for (var key in attrs) { s.setAttribute(key, attrs[key]); }
+    }
+    document.head.appendChild(s);
+  }
+
+  // Called with the visitor's saved (or just-chosen) consent to turn
+  // categories on. Replace the contents of each "if" block with your
+  // real tracking scripts.
+  function ccApplyConsent(consent) {
+    if (consent.analytics) {
+      // Example: Google Analytics 4
+      // ccLoadScript('https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX');
+      // window.dataLayer = window.dataLayer || [];
+      // function gtag(){ dataLayer.push(arguments); }
+      // gtag('js', new Date());
+      // gtag('config', 'G-XXXXXXX');
+    }
+    if (consent.marketing) {
+      if (!window.__kpMetaPixelLoaded) {
+        (function(f, b, e, v, n, t, s) {
+          if (f.fbq) return;
+          n = f.fbq = function() {
+            n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+          };
+          if (!f._fbq) f._fbq = n;
+          n.push = n;
+          n.loaded = true;
+          n.version = '2.0';
+          n.queue = [];
+          t = b.createElement(e);
+          t.async = true;
+          t.src = v;
+          s = b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t, s);
+        }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js'));
+        fbq.disablePushState = true;
+        fbq('init', '3711907918949422');
+        window.__kpMetaPixelLoaded = true;
+      } else if (typeof fbq === 'function') {
+        fbq('consent', 'grant');
+      }
+      window.__kpMetaMarketingReady = true;
+      document.dispatchEvent(new CustomEvent('kp:marketing-consent'));
+    } else if (typeof fbq === 'function') {
+      fbq('consent', 'revoke');
+    }
+  }
+
+  // On page load: show the banner if no choice has been recorded yet,
+  // otherwise silently apply the visitor's previous choice.
+ document.addEventListener('DOMContentLoaded', function () {
+  var consent = ccGetConsent();
+  if (!consent) {
+    document.body.classList.add('kp-awaiting-consent');
+    document.getElementById('cookie-consent-banner').classList.add('visible');
+  } else {
+    window.__kpCookieChoiceMade = true;
+    ccApplyConsent(consent);
+  }
+});
+</script>
+<!-- COOKIE-CONSENT-END -->

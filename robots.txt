@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /includes/
+Disallow: /config/
+Disallow: /logs/
+Disallow: /vendor/
+
+
+Sitemap: https://kingsburypersonnel.com/sitemap.xml
