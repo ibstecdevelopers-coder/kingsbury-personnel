@@ -559,10 +559,9 @@ unset($_SESSION['form_submitted']);
       height: 36px;
       display: grid;
       place-items: center;
-      border: 1px solid #d9dee8;
       border-radius: 50%;
-      color: var(--kp-primary);
-      background: #fff;
+      color: #fff;
+      background: var(--kp-primary);
       text-decoration: none;
       transition: all .2s ease;
     }
@@ -573,10 +572,9 @@ unset($_SESSION['form_submitted']);
       display: block;
     }
 
-    .socials a:hover {
-      background: var(--kp-primary);
-      color: #fff;
-      border-color: var(--kp-primary);
+    .socials a:hover,
+    .socials a:focus-visible {
+      background: var(--kp-primary-dark);
       transform: translateY(-2px);
     }
   </style>
@@ -677,7 +675,7 @@ unset($_SESSION['form_submitted']);
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path fill="currentColor"
-            d="M20.45 20.45h-3.55v-5.57c0-1.33 0-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.23 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45C23.2 24 24 23.23 24 22.27V1.73C24 .77 23.2 0 22.23 0z" />
+            d="M20.45 20.45h-3.55v-5.57c0-1.33 0-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45z" />
         </svg>
       </a>
 
@@ -688,7 +686,7 @@ unset($_SESSION['form_submitted']);
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path fill="currentColor"
-            d="M22 12.07C22 6.5 17.52 2 12 2S2 6.5 2 12.07c0 5.02 3.66 9.18 8.44 9.93v-7.03H7.9v-2.9h2.54V9.84c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22c4.78-.75 8.44-4.91 8.44-9.93z" />
+            d="M14.5 22v-8h2.7l.4-3h-3.1V9.1c0-.9.3-1.5 1.6-1.5h1.7V4.9c-.3 0-1.4-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3V11H8.4v3h2.7v8h3.4z" />
         </svg>
       </a>
 

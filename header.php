@@ -1,3 +1,4 @@
+<?php require_once __DIR__ . '/includes/geo.php'; ?>
 <!DOCTYPE html>
 <html lang="en-GB">
 
@@ -50,7 +51,7 @@
 </head>
 
 <body class="bg-white text-slate-900 antialiased">
-    <?php if (!empty($kpIsIndexPage)): ?>
+    <?php if (!empty($kpIsIndexPage) && !kp_block_meta_pixel()): ?>
         <noscript><img height="1" width="1" style="display:none"
                 src="https://www.facebook.com/tr?id=3711907918949422&ev=PageView&noscript=1"
                 alt="" /></noscript>

@@ -319,8 +319,55 @@
   </div>
 </div>
 
+<?php require_once __DIR__ . '/includes/geo.php'; ?>
 <script>
   var CC_STORAGE_KEY = 'kp_cookie_consent';
+
+  // Meta Pixel is switched off for traffic from Pakistan, decided by the
+  // visitor's IP address:
+  //   1. the server's lookup of the visitor IP (see includes/geo.php);
+  //   2. if the server couldn't tell (e.g. localhost), a lookup made from
+  //      the browser - this goes through any VPN / proxy extension, so it
+  //      sees the same IP Facebook would;
+  //   3. if both fail, the browser time zone.
+  // Add ?kp_geo=GB (or ?kp_geo=PK) to a URL to force a country when testing.
+  var KP_PIXEL_BLOCKED_COUNTRIES = <?= json_encode(KP_PIXEL_BLOCKED_COUNTRIES) ?>;
+  var KP_SERVER_COUNTRY = <?= json_encode(kp_visitor_country()) ?>;
+  var kpPixelBlockCheck = null;
+
+  function kpBrowserCountry() {
+    if (typeof fetch !== 'function') return Promise.resolve('');
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 2500) : null;
+    return fetch('https://ipinfo.io/json', { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) { return r.ok ? r.json() : {}; })
+      .then(function (data) { return String(data.country || '').toUpperCase(); })
+      .catch(function () { return ''; })
+      .then(function (country) { clearTimeout(timer); return country; });
+  }
+
+  // Resolves to true when the Meta Pixel must not load for this visitor.
+  function kpIsPixelBlocked() {
+    if (!kpPixelBlockCheck) {
+      var country = KP_SERVER_COUNTRY ? Promise.resolve(KP_SERVER_COUNTRY) : kpBrowserCountry();
+      kpPixelBlockCheck = country.then(function (code) {
+        var blocked;
+        if (code) {
+          blocked = KP_PIXEL_BLOCKED_COUNTRIES.indexOf(code) !== -1;
+        } else {
+          try {
+            blocked = Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Karachi';
+          } catch (e) {
+            blocked = false;
+          }
+        }
+        window.__kpVisitorCountry = code;
+        window.__kpBlockMetaPixel = blocked;
+        return blocked;
+      });
+    }
+    return kpPixelBlockCheck;
+  }
 
   function ccGetConsent() {
     try {
@@ -414,34 +461,42 @@
       // gtag('config', 'G-XXXXXXX');
     }
     if (consent.marketing) {
-      if (!window.__kpMetaPixelLoaded) {
-        (function(f, b, e, v, n, t, s) {
-          if (f.fbq) return;
-          n = f.fbq = function() {
-            n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-          };
-          if (!f._fbq) f._fbq = n;
-          n.push = n;
-          n.loaded = true;
-          n.version = '2.0';
-          n.queue = [];
-          t = b.createElement(e);
-          t.async = true;
-          t.src = v;
-          s = b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t, s);
-        }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js'));
-        fbq.disablePushState = true;
-        fbq('init', '3711907918949422');
-        window.__kpMetaPixelLoaded = true;
-      } else if (typeof fbq === 'function') {
-        fbq('consent', 'grant');
-      }
-      window.__kpMetaMarketingReady = true;
-      document.dispatchEvent(new CustomEvent('kp:marketing-consent'));
+      kpIsPixelBlocked().then(function (blocked) {
+        // For blocked regions the pixel never loads, so fbq stays undefined and
+        // every `typeof fbq === 'function'` guard on the site skips its event.
+        if (!blocked) ccLoadMetaPixel();
+      });
     } else if (typeof fbq === 'function') {
       fbq('consent', 'revoke');
     }
+  }
+
+  function ccLoadMetaPixel() {
+    if (!window.__kpMetaPixelLoaded) {
+      (function(f, b, e, v, n, t, s) {
+        if (f.fbq) return;
+        n = f.fbq = function() {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = true;
+        n.version = '2.0';
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = true;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s);
+      }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js'));
+      fbq.disablePushState = true;
+      fbq('init', '3711907918949422');
+      window.__kpMetaPixelLoaded = true;
+    } else if (typeof fbq === 'function') {
+      fbq('consent', 'grant');
+    }
+    window.__kpMetaMarketingReady = true;
+    document.dispatchEvent(new CustomEvent('kp:marketing-consent'));
   }
 
   // On page load: show the banner if no choice has been recorded yet,
