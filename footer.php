@@ -257,6 +257,7 @@ $kpIsContactPage = basename($_SERVER['SCRIPT_NAME'] ?? '') === 'contact.php' ||
     basename($_SERVER['SCRIPT_NAME'] ?? '') === 'safeguarding.php' ||
     basename($_SERVER['SCRIPT_NAME'] ?? '') === 'nursing-recruitment.php' ||
     basename($_SERVER['SCRIPT_NAME'] ?? '') === 'care-home-recruitment.php' ||
+    basename($_SERVER['SCRIPT_NAME'] ?? '') === 'healthcare-recruitment.php' ||
     basename($_SERVER['SCRIPT_NAME'] ?? '') === 'employers.php' ||
     basename($_SERVER['SCRIPT_NAME'] ?? '') === '404.php';
 if (!$kpIsContactPage):
