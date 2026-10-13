@@ -361,7 +361,7 @@
 <main id="main-content">
   <section class="policy-hero" style="padding: 150px 0 60px;">
     <div class="site-container">
-      <div class="eyebrow eyebrow-light"><span></span>legal</div>
+      <div class="eyebrow eyebrow-light"><span></span>Employers</div>
       <h1>Safeguarding Statement</h1>
       <p>How we protect vulnerable adults and children through safer recruitment.</p>
       <div class="policy-version"><span></span>Last updated: September 2026</div>
@@ -395,43 +395,43 @@
         <section id="types-of-cookies">
           <h2><span class="policy-num">02</span>The law we follow</h2>
           <ul>
-        <li>The Care Act 2014 and statutory guidance on safeguarding adults</li>
-        <li>The Children Act 1989 and 2004, and Working Together to Safeguard Children 2023</li>
-        <li>The Safeguarding Vulnerable Groups Act 2006</li>
-        <li>The Early Years Foundation Stage safeguarding requirements, for nursery roles</li>
-        <li>The Rehabilitation of Offenders Act 1974 and the DBS Code of Practice</li>
-    </ul>
+            <li>The Care Act 2014 and statutory guidance on safeguarding adults</li>
+            <li>The Children Act 1989 and 2004, and Working Together to Safeguard Children 2023</li>
+            <li>The Safeguarding Vulnerable Groups Act 2006</li>
+            <li>The Early Years Foundation Stage safeguarding requirements, for nursery roles</li>
+            <li>The Rehabilitation of Offenders Act 1974 and the DBS Code of Practice</li>
+          </ul>
         </section>
 
 
         <section id="how-we-use-cookies">
           <h2><span class="policy-num">03</span>Safer recruitment</h2>
           <p>For every role involving vulnerable adults or children we:</p>
-<ul>
-        <li>Verify identity using original documents or approved digital checks.</li>
-        <li>Request an enhanced DBS check with the adults’ and/or children’s barred list where the role is eligible, or verify an existing certificate through the DBS Update Service with the candidate’s consent.</li>
-        <li>Check professional registration and any conditions, including on the NMC register.</li>
-        <li>Obtain at least two references, including the most recent employer, and verify them with the referee.</li>
-        <li>Check the full employment history and explore any gaps.</li>
-        <li>Ask about the reasons for leaving roles involving vulnerable people.</li>
-        <li>Interview every candidate before introduction.</li>
-    </ul>
+          <ul>
+            <li>Verify identity using original documents or approved digital checks.</li>
+            <li>Request an enhanced DBS check with the adults’ and/or children’s barred list where the role is eligible, or verify an existing certificate through the DBS Update Service with the candidate’s consent.</li>
+            <li>Check professional registration and any conditions, including on the NMC register.</li>
+            <li>Obtain at least two references, including the most recent employer, and verify them with the referee.</li>
+            <li>Check the full employment history and explore any gaps.</li>
+            <li>Ask about the reasons for leaving roles involving vulnerable people.</li>
+            <li>Interview every candidate before introduction.</li>
+          </ul>
         </section>
 
         <section id="why-we-process">
           <h2><span class="policy-num">04</span>Our duty to refer</h2>
-         <p>As a personnel supplier under the Safeguarding Vulnerable Groups Act 2006, we have a legal duty to refer a person to the Disclosure and Barring Service if we stop supplying them because they have harmed, or posed a risk of harm to, a child or vulnerable adult. We will also refer registered nurses to the Nursing and Midwifery Council where there is a concern about their fitness to practise.</p>
+          <p>As a personnel supplier under the Safeguarding Vulnerable Groups Act 2006, we have a legal duty to refer a person to the Disclosure and Barring Service if we stop supplying them because they have harmed, or posed a risk of harm to, a child or vulnerable adult. We will also refer registered nurses to the Nursing and Midwifery Council where there is a concern about their fitness to practise.</p>
         </section>
 
         <section id="lawful-basis">
           <h2><span class="policy-num">05</span>How we respond to concerns</h2>
 
           <ul>
-        <li>We act on every concern the day we receive it.</li>
-        <li>We share information with the employer, the local authority safeguarding team and the police where needed to protect people.</li>
-        <li>Where a temporary worker is the subject of a serious allegation, we stop supplying them while the matter is investigated.</li>
-        <li>We keep a record of concerns, actions and outcomes.</li>
-    </ul>
+            <li>We act on every concern the day we receive it.</li>
+            <li>We share information with the employer, the local authority safeguarding team and the police where needed to protect people.</li>
+            <li>Where a temporary worker is the subject of a serious allegation, we stop supplying them while the matter is investigated.</li>
+            <li>We keep a record of concerns, actions and outcomes.</li>
+          </ul>
         </section>
 
         <section id="sharing-information">
