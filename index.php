@@ -1,6 +1,7 @@
 <?php include 'header.php'; ?>
+
 <head>
-<title>Kingsbury Personnel Ltd. | Recruitment & Staffing Solutions</title>
+  <title>Kingsbury Personnel Ltd. | Recruitment & Staffing Solutions</title>
 </head>
 <main id="main-content">
   <section id="home" class="hero-section">
@@ -17,8 +18,8 @@
         <div class="hero-actions">
           <a href="./contact.php" class="btn btn-primary btn-lg">Apply for
             Roles</a>
-          <a href="./contact.php" class="btn btn-secondary btn-lg">Register Your
-            CV</a>
+          <!-- <a href="./contact.php" class="btn btn-secondary btn-lg">Register Your
+            CV</a> -->
         </div>
         <div class="hero-proof"
           aria-label="Kingsbury Personnel candidate benefits">
@@ -102,7 +103,7 @@
       </div>
 
       <div class="logo-strip reveal" aria-label="Roles we recruit for">
-        <span>Care Homes</span><span>Nursing</span><span>Nursery</span><span>Registered Managers</span><span>Hospitality</span><span>Solicitors</span><span>Chef</span><span>Sous Chef</span><span>Senior Chef</span><span>Head Chef</span><span>Chef Hotel</span><span>Nursery Chef</span><span>Chef Care Home</span>
+        <span>Care Homes</span><span>Nursing</span><span>Nursery</span><span>Registered Managers</span><span>Hospitality</span><span>Solicitors</span><span>Chef</span><span>Sous Chef</span><span>Senior Chef</span><span>Head Chef</span><span>Chef Hotel</span><span>Nursery Chef</span>
       </div>
 
 
@@ -233,8 +234,7 @@
         <article class="expertise-card reveal">
           <div
             class="expertise-top"><span>01</span>
-            <div
-              class="sector-icon">✦</div>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 10 9-6 9 6v10H3zM9 20v-6h6v6M7 10h.01M17 10h.01" /></svg></div>
           </div>
           <h3>Care Homes</h3>
           <p>Roles
@@ -245,8 +245,7 @@
         <article class="expertise-card reveal">
           <div
             class="expertise-top"><span>02</span>
-            <div
-              class="sector-icon">+</div>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z" /></svg></div>
           </div>
           <h3>Nursing (RGN, RMN,
             RNLD)</h3>
@@ -258,8 +257,7 @@
         <article class="expertise-card reveal">
           <div
             class="expertise-top"><span>03</span>
-            <div
-              class="sector-icon">♡</div>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.8 8.7c0 5.1-8.8 11-8.8 11s-8.8-5.9-8.8-11A4.7 4.7 0 0 1 12 6.2a4.7 4.7 0 0 1 8.8 2.5Z" /></svg></div>
           </div>
           <h3>Nursery</h3>
           <p>Nursery practitioner and early years roles for candidates passionate about childcare and early years education across the UK.</p><a href="/contact.php">Apply Now
@@ -268,8 +266,7 @@
         <article class="expertise-card reveal">
           <div
             class="expertise-top"><span>04</span>
-            <div
-              class="sector-icon">⌘</div>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5" /><path d="M4.5 21a7.5 7.5 0 0 1 15 0M18 4v5M15.5 6.5H21" /></svg></div>
           </div>
           <h3>Registered
             Managers</h3>
@@ -280,8 +277,7 @@
         <article class="expertise-card reveal">
           <div
             class="expertise-top"><span>05</span>
-            <div
-              class="sector-icon">⚖</div>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v17M6 6h12M4 21h16M6 6l-4 8h8L6 6Zm12 0-4 8h8l-4-8Z" /></svg></div>
           </div>
           <h3>Solicitors</h3>
           <p>Legal
@@ -293,8 +289,7 @@
         <article class="expertise-card reveal">
           <div
             class="expertise-top"><span>06</span>
-            <div
-              class="sector-icon">☆</div>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 14a9 9 0 0 1 18 0H3ZM2 17h20M5 20h14" /><path d="M12 5V3" /></svg></div>
           </div>
           <h3>Hospitality</h3>
           <p>Temporary and permanent hospitality roles across hotels, catering, and
@@ -305,12 +300,47 @@
         <article class="expertise-card reveal">
           <div
             class="expertise-top"><span>07</span>
-            <div
-              class="sector-icon">+</div>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 10a6 6 0 0 1 12 0v2h2v8H4v-8h2v-2ZM8 10a4 4 0 0 1 8 0M9 5l-1-2M15 5l1-2" /></svg></div>
           </div>
-          <h3>Chef</h3>
-          <p>Temporary and permanent chef roles across hotels, restaurants, and
-            catering establishments for candidates with a passion for culinary arts across the UK.</p><a href="./contact.php">Apply Now
+          <h3>Chef / Sous Chef</h3>
+          <p>
+            Temporary and permanent Chef and Sous Chef roles across the UK,
+            preparing high-quality dishes, supporting menu development, supervising
+            kitchen teams, maintaining food hygiene standards, and ensuring smooth
+            daily kitchen operations across hotels, restaurants, and catering
+            establishments.
+          </p>
+          <a href="./contact.php">Apply Now
+            <span>↗</span></a>
+        </article>
+        <article class="expertise-card reveal">
+          <div
+            class="expertise-top"><span>08</span>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 10a6 6 0 0 1 12 0v2h2v8H4v-8h2v-2ZM8 10a4 4 0 0 1 8 0" /><path d="m12 2 .8 1.6 1.7.2-1.2 1.2.3 1.7L12 5.9l-1.6.8.3-1.7-1.2-1.2 1.7-.2L12 2Z" /></svg></div>
+          </div>
+          <h3>Senior Chef / Head Chef</h3>
+          <p>
+            Temporary and permanent Senior Chef and Head Chef roles across the UK,
+            leading kitchen teams, overseeing food preparation, planning menus,
+            maintaining food safety standards, and delivering exceptional culinary
+            experiences across hotels, restaurants, and catering establishments.
+          </p>
+          <a href="./contact.php">Apply Now
+            <span>↗</span></a>
+        </article>
+        <article class="expertise-card reveal">
+          <div
+            class="expertise-top"><span>09</span>
+            <div class="sector-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 14h16l-2 6H6l-2-6ZM7 14a5 5 0 0 1 10 0M12 4v3M7 6l1.5 2M17 6l-1.5 2" /></svg></div>
+          </div>
+          <h3>Chef Hotel / Nursery Chef</h3>
+          <p>
+            Temporary and permanent Hotel Chef and Nursery Chef roles across the UK.
+            Prepare high-quality meals for hotel guests or nutritious, age-appropriate
+            food for children in nursery settings, following dietary requirements,
+            food hygiene regulations, and relevant safety standards.
+          </p>
+          <a href="./contact.php">Apply Now
             <span>↗</span></a>
         </article>
       </div>

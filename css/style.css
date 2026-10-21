@@ -1020,6 +1020,16 @@ textarea:focus-visible {
   font-size: 17px;
 }
 
+.sector-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
 .expertise-card h3 {
   color: #fff;
   font-size: 20px;
@@ -2164,6 +2174,10 @@ textarea:focus-visible {
 
   .section-heading p {
     font-size: 15px;
+  }
+
+  .logo-strip {
+    display: none;
   }
 
   .stats-grid,
