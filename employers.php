@@ -1,4 +1,7 @@
-<?php include 'header.php'; ?>
+<?php
+include 'header.php';
+$employerCaptchaConfig = require __DIR__ . '/config/captcha.php';
+?>
 
 <style>
   .service-hero {
@@ -681,6 +684,10 @@
               or call <a href="tel:+441494211220">+44 (0)1494
                 211220</a>.</p>
           </noscript>
+
+          <?php if ($employerCaptchaConfig['site_key'] !== ''): ?>
+          <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars($employerCaptchaConfig['site_key'], ENT_QUOTES, 'UTF-8') ?>"></div>
+          <?php endif; ?>
           <button type="submit" class="btn btn-primary" style="margin-top: 1.2rem">Send My
             Request</button>
           <div class="form-status" aria-live="polite"></div>
@@ -696,6 +703,18 @@
       const status = employerRequestForm.querySelector('.form-status');
       const submitButton = employerRequestForm.querySelector('[type="submit"]');
       const submitLabel = submitButton.textContent;
+
+      const captchaWidget = employerRequestForm.querySelector('.g-recaptcha');
+      const kpCaptcha = window.kpCaptcha;
+      if (captchaWidget && kpCaptcha) kpCaptcha.render(captchaWidget);
+      const captchaToken = captchaWidget && kpCaptcha ? kpCaptcha.getResponse(captchaWidget) : '';
+      if (captchaWidget && !captchaToken) {
+        status.textContent = kpCaptcha?.isRendered(captchaWidget) ?
+          'Please complete the CAPTCHA check before sending your request.' :
+          'The CAPTCHA could not load. Please refresh the page (and disable any ad-blocker) and try again.';
+        status.className = 'form-status error';
+        return;
+      }
       submitButton.disabled = true;
       submitButton.textContent = 'Sending request...';
       status.textContent = 'Sending your request...';
@@ -704,6 +723,7 @@
       try {
         const formData = new FormData(employerRequestForm);
         formData.set('kp_hp', '');
+        if (captchaToken) formData.set('g-recaptcha-response', captchaToken);
         formData.delete('website');
 
         const response = await fetch(employerRequestForm.action, {
@@ -720,7 +740,9 @@
         status.textContent = result.message || 'Your request has been sent.';
         status.className = 'form-status success';
         employerRequestForm.reset();
+        if (captchaWidget) kpCaptcha?.reset(captchaWidget);
       } catch (error) {
+        if (captchaWidget) kpCaptcha?.reset(captchaWidget);
         status.textContent = error?.message || 'We could not send your request right now.';
         status.className = 'form-status error';
       } finally {

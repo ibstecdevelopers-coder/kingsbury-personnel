@@ -1533,6 +1533,22 @@ textarea:focus-visible {
   width: 100%;
 }
 
+.captcha-container {
+  margin: 20px 0;
+  min-height: 78px;
+}
+
+.captcha-notice {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.captcha-config-error {
+  color: #b42318;
+}
+
 .form-submit:disabled {
   opacity: .7;
   cursor: wait;
@@ -2873,6 +2889,55 @@ body.lead-magnet-open {
 
 .lead-magnet-form select:valid {
   color: #0b1f3a;
+}
+
+.lead-magnet-captcha {
+  margin: 4px 0 12px;
+  min-height: 78px;
+    overflow: visible;
+}
+
+.lead-magnet-captcha .g-recaptcha,
+.captcha-container .g-recaptcha {
+  width: 304px;
+  height: 78px;
+  max-width: none;
+  transform-origin: 0 0;
+}
+
+@media (max-width: 480px) {
+  .lead-magnet-captcha {
+    min-height: 66px;
+  }
+
+  .lead-magnet-captcha .g-recaptcha {
+    transform: scale(0.85);
+  }
+}
+
+@media (max-width: 380px) {
+  .lead-magnet-captcha {
+    min-height: 60px;
+  }
+
+  .lead-magnet-captcha .g-recaptcha {
+    transform: scale(0.74);
+  }
+
+  .captcha-container .g-recaptcha {
+    transform: scale(0.88);
+  }
+}
+
+.lead-magnet-captcha-note {
+  margin: 4px 0 0;
+  color: #6b7c90;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.lead-magnet-captcha-error {
+  color: #b42318;
 }
 
 .lead-magnet-form [aria-invalid="true"] {

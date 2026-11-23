@@ -102,12 +102,35 @@ function openLeadMagnetWhenAllowed() {
   openLeadMagnet(); // your existing open function
 }
 
+// Read the token from the form's own widget. reCAPTCHA's no-argument
+// getResponse() only reads the first widget on the page.
+const getCaptchaResponse = widget => {
+  const widgetId = widget?.dataset.widgetId;
+  if (widgetId !== undefined && window.grecaptcha?.getResponse) {
+    return window.grecaptcha.getResponse(Number(widgetId));
+  }
+
+  return widget?.querySelector('textarea[name="g-recaptcha-response"]')?.value || '';
+};
+
+const resetCaptcha = widget => {
+  const widgetId = widget?.dataset.widgetId;
+  if (window.grecaptcha?.reset) {
+    if (widgetId !== undefined) {
+      window.grecaptcha.reset(Number(widgetId));
+    } else {
+      window.grecaptcha.reset();
+    }
+  }
+};
+
   const openLeadMagnet = () => {
     if (!leadMagnet || isContactPage || hasSubmittedLead()) return;
     setReopenAt(0);
     leadMagnet.hidden = false;
     leadMagnet.classList.add('is-open');
     document.body.classList.add('lead-magnet-open');
+    window.kpRenderLeadMagnetCaptcha?.();
     window.setTimeout(() => {
       document.getElementById('lead-name')?.focus();
     }, 50);
@@ -185,9 +208,21 @@ function openLeadMagnetWhenAllowed() {
       return;
     }
 
+    const captchaWidget = leadForm.querySelector('.g-recaptcha');
+    if (captchaWidget && !getCaptchaResponse(captchaWidget)) {
+      leadStatus.textContent = 'Please complete the CAPTCHA check before submitting.';
+      leadStatus.className = 'lead-magnet-status error';
+      captchaWidget.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'center'
+      });
+      return;
+    }
+
     trackLeadMagnetSubmit();
 
     const payload = new FormData(leadForm);
+    if (captchaWidget) payload.set('g-recaptcha-response', getCaptchaResponse(captchaWidget));
     payload.set('formType', 'lead');
     payload.set('kp_hp', '');
     payload.delete('website');
@@ -222,6 +257,7 @@ function openLeadMagnetWhenAllowed() {
       requiredFields.forEach(field => field.removeAttribute('aria-invalid'));
       window.setTimeout(() => closeLeadMagnet(), 1600);
     } catch (error) {
+      resetCaptcha(captchaWidget);
       leadStatus.textContent = error.message || 'We could not send your details just now. Please try again.';
       leadStatus.className = 'lead-magnet-status error';
     } finally {
@@ -538,7 +574,19 @@ function openLeadMagnetWhenAllowed() {
       return;
     }
 
+    const captchaWidget = form.querySelector('.g-recaptcha');
+    if (captchaWidget && !getCaptchaResponse(captchaWidget)) {
+      formStatus.textContent = 'Please complete the CAPTCHA check before submitting your application.';
+      formStatus.className = 'form-status error';
+      captchaWidget.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'center'
+      });
+      return;
+    }
+
     const payload = new FormData(form);
+    if (captchaWidget) payload.set('g-recaptcha-response', getCaptchaResponse(captchaWidget));
     payload.set('kp_hp', '');
     payload.delete('website');
 
@@ -580,6 +628,7 @@ function openLeadMagnetWhenAllowed() {
       window.location.href = 'thank-you.php';
       return; // stop here so the `finally` block doesn't re-enable the button on an unloading page
     } catch (error) {
+      resetCaptcha(captchaWidget);
       const failedToFetch = /failed to fetch/i.test(error.message || '');
       formStatus.textContent = failedToFetch ?
         'Open https://kingsburypersonnel.com/ in your browser and submit the form there. Previews and Live Server cannot send the email.' :

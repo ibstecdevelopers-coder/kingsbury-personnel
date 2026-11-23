@@ -1,8 +1,7 @@
 <?php
 
-//echo $_SERVER['SERVER_ADDR'];
-//exit();
 $kpPageTitle = 'Contact | Kingsbury Personnel Ltd.';
+$captchaConfig = require __DIR__ . '/config/captcha.php';
 include 'header.php';
 
 $saleId = isset($_GET['ref']) ? trim($_GET['ref']) : '';
@@ -22,7 +21,7 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
                             href="tel:+441494211220">+44 (0) 1494 211220</a></div>
                     <div><span>Email</span><a
                             href="mailto:info@kingsburypersonnel.com">info@kingsburypersonnel.com</a></div>
-                            <div><span>Address</span>
+                    <div><span>Address</span>
                         <p>124 City Road, London, England, EC1V 2NX</p>
                     </div>
                     <div><span>Coverage</span><strong>Recruitment support across the
@@ -205,15 +204,19 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
                     <label class="checkbox-row" for="privacy">
 
                         <span>
-                            By submitting you agree to our 
+                            By submitting you agree to our
                             <a href="/privacy-policy.php">Privacy Policy</a>.
                         </span>
 
                     </label>
 
+                    <?php if ($captchaConfig['site_key'] !== ''): ?>
+                        <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars($captchaConfig['site_key'], ENT_QUOTES, 'UTF-8') ?>"></div>
+                    <?php endif; ?>
+
                     <!-- SUBMIT -->
                     <button type="submit"
-                        class="btn btn-primary btn-lg form-submit">
+                        class="btn btn-primary mt-2 btn-lg form-submit">
 
                         Submit My Application
                         <span>→</span>
@@ -390,93 +393,94 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
 
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        //     document.addEventListener("DOMContentLoaded", function() {
 
-            const popup = document.getElementById("wellbeingGuidePopup");
-            const closeButton = document.getElementById("wellbeingPopupClose");
+        //         const popup = document.getElementById("wellbeingGuidePopup");
+        //         const closeButton = document.getElementById("wellbeingPopupClose");
 
-            if (!popup || !closeButton) {
-                return;
-            }
+        //         if (!popup || !closeButton) {
+        //             return;
+        //         }
 
-            /* =========================
-               OPEN POPUP
-            ========================= */
-            function openWellbeingPopup() {
-                popup.classList.add("active");
-                popup.setAttribute("aria-hidden", "false");
-                document.body.style.overflow = "hidden";
-            }
+        //         /* =========================
+        //            OPEN POPUP
+        //         ========================= */
+        //         function openWellbeingPopup() {
+        //             popup.classList.add("active");
+        //             popup.setAttribute("aria-hidden", "false");
+        //             document.body.style.overflow = "hidden";
+        //         }
 
-            /* =========================
-               CLOSE POPUP
-            ========================= */
-            function closeWellbeingPopup() {
-                popup.classList.remove("active");
-                popup.setAttribute("aria-hidden", "true");
-                document.body.style.overflow = "";
-            }
+        //         /* =========================
+        //            CLOSE POPUP
+        //         ========================= */
+        //         function closeWellbeingPopup() {
+        //             popup.classList.remove("active");
+        //             popup.setAttribute("aria-hidden", "true");
+        //             document.body.style.overflow = "";
+        //         }
 
-            /* =========================
-               AUTO OPEN AFTER 3 SECONDS
-            ========================= */
-            setTimeout(function() {
+        //         /* =========================
+        //            AUTO OPEN AFTER 3 SECONDS
+        //         ========================= */
+        //         setTimeout(function() {
 
-                const lastShown = localStorage.getItem(
-                    "kingsbury_wellbeing_popup"
-                );
+        //             const lastShown = localStorage.getItem(
+        //                 "kingsbury_wellbeing_popup"
+        //             );
 
-                const now = Date.now();
-                const twentyFourHours = 24 * 60 * 60 * 1000;
+        //             const now = Date.now();
+        //             const twentyFourHours = 24 * 60 * 60 * 1000;
 
-                if (
-                    !lastShown ||
-                    now - parseInt(lastShown, 10) > twentyFourHours
-                ) {
-                    openWellbeingPopup();
+        //             if (
+        //                 !lastShown ||
+        //                 now - parseInt(lastShown, 10) > twentyFourHours
+        //             ) {
+        //                 openWellbeingPopup();
 
-                    localStorage.setItem(
-                        "kingsbury_wellbeing_popup",
-                        now.toString()
-                    );
-                }
+        //                 localStorage.setItem(
+        //                     "kingsbury_wellbeing_popup",
+        //                     now.toString()
+        //                 );
+        //             }
 
-            }, 3000);
+        //         }, 3000);
 
-            /* =========================
-               CLOSE BUTTON
-            ========================= */
-            closeButton.addEventListener(
-                "click",
-                closeWellbeingPopup
-            );
+        //         /* =========================
+        //            CLOSE BUTTON
+        //         ========================= */
+        //         closeButton.addEventListener(
+        //             "click",
+        //             closeWellbeingPopup
+        //         );
 
-            /* =========================
-               CLICK OUTSIDE
-            ========================= */
-            popup.addEventListener("click", function(event) {
+        //         /* =========================
+        //            CLICK OUTSIDE
+        //         ========================= */
+        //         popup.addEventListener("click", function(event) {
 
-                if (event.target === popup) {
-                    closeWellbeingPopup();
-                }
+        //             if (event.target === popup) {
+        //                 closeWellbeingPopup();
+        //             }
 
-            });
+        //         });
 
-            /* =========================
-               ESC KEY
-            ========================= */
-            document.addEventListener("keydown", function(event) {
+        //         /* =========================
+        //            ESC KEY
+        //         ========================= */
+        //         document.addEventListener("keydown", function(event) {
 
-                if (
-                    event.key === "Escape" &&
-                    popup.classList.contains("active")
-                ) {
-                    closeWellbeingPopup();
-                }
+        //             if (
+        //                 event.key === "Escape" &&
+        //                 popup.classList.contains("active")
+        //             ) {
+        //                 closeWellbeingPopup();
+        //             }
 
-            });
+        //         });
 
-        });
+        //     });
+        // 
     </script>
 </main>
 

@@ -16,7 +16,8 @@
 if (!defined('KP_API_BASE')) {
     // No trailing slash. If your routes sit inside routes/api.php the
     // prefix is usually /api, e.g. https://crm.kingsburypersonnel.com/api
-    define('KP_API_BASE', 'http://103.207.85.42:8080/api');
+    define('KP_API_BASE', 'http://103.207.85.46:5555/api');
+    // define('KP_API_BASE', 'http://103.207.85.42:8080/api');
 }
 if (!defined('KP_API_TOKEN')) {
     define('KP_API_TOKEN', 'v8Kq2mZ7xP4nR9tL6wY3cF1sD5hJ0uA8eG2bN7qX9mV4pT6z');      // leave '' if the endpoints are public

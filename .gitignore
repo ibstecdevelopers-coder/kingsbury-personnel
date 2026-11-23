@@ -3,3 +3,4 @@
 cache/*
 config/*
 .htaccess
+!config/captcha.php

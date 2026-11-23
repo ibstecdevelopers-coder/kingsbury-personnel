@@ -348,6 +348,12 @@
 
   // Resolves to true when the Meta Pixel must not load for this visitor.
   function kpIsPixelBlocked() {
+    // A page can switch the pixel off for this visit (e.g. thank-you.php when the
+    // candidate does not require sponsorship).
+    if (window.KP_SKIP_META_PIXEL === true) {
+      window.__kpBlockMetaPixel = true;
+      return Promise.resolve(true);
+    }
     if (!kpPixelBlockCheck) {
       var country = KP_SERVER_COUNTRY ? Promise.resolve(KP_SERVER_COUNTRY) : kpBrowserCountry();
       kpPixelBlockCheck = country.then(function (code) {

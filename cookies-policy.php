@@ -493,6 +493,17 @@ Your current choice (saved 25/09/2026): analytics off, marketing off. Consent ID
         </tr>
 
         <tr>
+            <th scope="row">_GRECAPTCHA</th>
+            <td>Google reCAPTCHA</td>
+            <td>
+                Supports risk analysis to help prevent automated submissions
+                on the contact CV application form
+            </td>
+            <td>Security</td>
+            <td>As set by Google</td>
+        </tr>
+
+        <tr>
             <th scope="row">_ga</th>
             <td>Google Analytics</td>
             <td>

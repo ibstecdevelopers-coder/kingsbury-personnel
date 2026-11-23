@@ -12,6 +12,11 @@ $submittedName = htmlspecialchars((string) ($submittedApplication['name'] ?? '')
 $submittedEmail = htmlspecialchars((string) ($submittedApplication['email'] ?? ''), ENT_QUOTES, 'UTF-8');
 $submittedSpecialism = htmlspecialchars((string) ($submittedApplication['specialism'] ?? ''), ENT_QUOTES, 'UTF-8');
 
+// Candidates who answered "No" to "Do you require sponsorship?" on the contact form
+// must not be reported to Meta: the pixel is not loaded and no events are sent.
+$kpSkipMetaTracking = ($submittedApplication['type'] ?? '') === 'application'
+  && strcasecmp(trim((string) ($submittedApplication['sponsorship'] ?? '')), 'No') === 0;
+
 // Delete session data immediately
 unset($_SESSION['submitted_application']);
 unset($_SESSION['form_submitted']);
@@ -878,7 +883,13 @@ unset($_SESSION['form_submitted']);
     });
   </script>
 
+  <?php if ($kpSkipMetaTracking): ?>
+    <script>
+      window.KP_SKIP_META_PIXEL = true;
+    </script>
+  <?php endif; ?>
   <?php include 'cookie-consent.html'; ?>
+  <?php if (!$kpSkipMetaTracking): ?>
   <script>
     function trackCandidateProfile() {
       var consent = typeof ccGetConsent === 'function' ? ccGetConsent() : null;
@@ -896,6 +907,7 @@ unset($_SESSION['form_submitted']);
       });
     }
   </script>
+  <?php endif; ?>
 
 </body>
 

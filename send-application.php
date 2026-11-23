@@ -52,6 +52,7 @@ $fields = [
 $isEmployer = $formType === 'employer';
 $isLead = $formType === 'lead';
 $isDataRights = $formType === 'data_rights';
+$isCandidateApplication = !$isEmployer && !$isLead && !$isDataRights;
 $leadName = trim((string) ($_POST['name'] ?? ''));
 if ($isLead && $leadName !== '') {
   $fields['fullName'] = $leadName;
@@ -160,6 +161,95 @@ if ($errors) {
         : 'Please complete the required fields and attach your CV before submitting.')));
 }
 
+if ($isCandidateApplication || $isLead || $isEmployer) {
+  $captchaConfig = require __DIR__ . '/config/captcha.php';
+  $captchaToken = is_string($_POST['g-recaptcha-response'] ?? null)
+    ? trim($_POST['g-recaptcha-response'])
+    : '';
+
+  if ($captchaConfig['site_key'] === '' || $captchaConfig['secret_key'] === '') {
+    logMailError('Form submission rejected because Google reCAPTCHA is not configured.');
+    respond(503, false, 'CAPTCHA verification is unavailable. Please contact us by phone or email.');
+  }
+
+  if ($captchaToken === '') {
+    respond(422, false, 'Please complete the CAPTCHA check before submitting.');
+  }
+
+  $verificationPayload = http_build_query([
+    'secret' => $captchaConfig['secret_key'],
+    'response' => $captchaToken,
+  ]);
+  $verificationBody = false;
+
+  if (function_exists('curl_init')) {
+    $curl = curl_init('https://www.google.com/recaptcha/api/siteverify');
+    if ($curl !== false) {
+      curl_setopt_array($curl, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $verificationPayload,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 8,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+      ]);
+      $curlResponse = curl_exec($curl);
+      if (is_string($curlResponse)) {
+        $verificationBody = $curlResponse;
+      }
+      curl_close($curl);
+    }
+  }
+
+  if ($verificationBody === false) {
+    // Keep a streams fallback for hosts that have URL fopen enabled but no cURL,
+    // or when cURL could not reach the verification service.
+    $verificationContext = stream_context_create([
+      'http' => [
+        'method' => 'POST',
+        'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+        'content' => $verificationPayload,
+        'timeout' => 8,
+        'ignore_errors' => true,
+      ],
+      'ssl' => [
+        'verify_peer' => true,
+        'verify_peer_name' => true,
+      ],
+    ]);
+    $verificationBody = @file_get_contents(
+      'https://www.google.com/recaptcha/api/siteverify',
+      false,
+      $verificationContext
+    );
+  }
+
+  if ($verificationBody === false) {
+    logMailError('Google reCAPTCHA verification service could not be reached.');
+    respond(503, false, 'CAPTCHA verification is temporarily unavailable. Please try again shortly.');
+  }
+
+  $verification = json_decode($verificationBody, true);
+  if (!is_array($verification)) {
+    logMailError('Google reCAPTCHA returned an invalid verification response.');
+    respond(503, false, 'CAPTCHA verification is temporarily unavailable. Please try again shortly.');
+  }
+
+  $captchaHostname = strtolower(trim((string) ($verification['hostname'] ?? '')));
+  if (($verification['success'] ?? false) !== true
+    || !in_array($captchaHostname, $captchaConfig['allowed_hostnames'], true)
+  ) {
+    $errorCodes = $verification['error-codes'] ?? [];
+    $safeErrorCodes = is_array($errorCodes)
+      ? array_values(array_filter($errorCodes, 'is_string'))
+      : [];
+    $errorSummary = $safeErrorCodes ? ' Error codes: ' . implode(', ', $safeErrorCodes) . '.' : '';
+    logMailEvent('Rejected form submission with an invalid Google reCAPTCHA response.' . $errorSummary);
+    respond(422, false, 'CAPTCHA verification failed. Please try again.');
+  }
+}
+
 $submittedAt = (new DateTimeImmutable())->format('l j F Y \a\t H:i');
 $displayName = trim($fields['fullName']);
 if (!$isLead && !$isDataRights && !$isEmployer) {
@@ -221,6 +311,7 @@ try {
     'name' => $displayName,
     'email' => $fields['email'],
     'specialism' => $fields['specialism'],
+    'sponsorship' => $fields['sponsorship'],
     'type' => $isEmployer ? 'employer' : ($isLead ? 'lead' : 'application'),
   ];
 

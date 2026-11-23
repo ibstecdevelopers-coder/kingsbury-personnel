@@ -261,6 +261,7 @@ $kpIsContactPage = basename($_SERVER['SCRIPT_NAME'] ?? '') === 'contact.php' ||
     basename($_SERVER['SCRIPT_NAME'] ?? '') === 'employers.php' ||
     basename($_SERVER['SCRIPT_NAME'] ?? '') === '404.php';
 if (!$kpIsContactPage):
+    $kpCaptchaConfig = require __DIR__ . '/config/captcha.php';
 ?>
     <div id="lead-magnet" class="lead-magnet" hidden>
         <div class="lead-magnet-backdrop" data-lead-close></div>
@@ -382,7 +383,11 @@ if (!$kpIsContactPage):
                         <option value="Sous Chef">Sous Chef</option>
                     </select>
 
-                    <button type="submit" class="lead-magnet-submit">
+                    <?php if ($kpCaptchaConfig['site_key'] !== ''): ?>
+                    <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars($kpCaptchaConfig['site_key'], ENT_QUOTES, 'UTF-8') ?>"></div>
+                    <?php endif; ?>
+
+                    <button type="submit" class="lead-magnet-submit mt-2">
                         Find my next role
                         <svg viewBox="0 0 20 20" aria-hidden="true">
                             <path d="M4 10h12M12 6l4 4-4 4" fill="none" stroke="currentColor"
@@ -399,8 +404,28 @@ if (!$kpIsContactPage):
             </div>
         </div>
     </div>
-<?php endif; ?>
 
+<?php endif; ?>
+<?php
+// Single, shared reCAPTCHA loader for every form on the page (contact form, employer form + lead modal).
+// The API is loaded once with explicit rendering; js/script.js renders each widget
+// and keeps track of its widget id.
+$kpCaptchaPageName = basename($_SERVER['SCRIPT_NAME'] ?? '');
+$kpCaptchaPageConfig = require __DIR__ . '/config/captcha.php';
+if ($kpCaptchaPageConfig['site_key'] !== '' && (!$kpIsContactPage || in_array($kpCaptchaPageName, ['contact.php', 'employers.php'], true))):
+?>
+    <script>
+        window.kpRecaptchaApiReady = false;
+        window.kpRecaptchaOnload = function() {
+            window.kpRecaptchaApiReady = true;
+            if (window.kpCaptcha) {
+                window.kpCaptcha.renderAll();
+            }
+        };
+    </script>
+    <script src="https://www.google.com/recaptcha/api.js?onload=kpRecaptchaOnload&amp;render=explicit&amp;hl=en" async defer></script>
+    
+<?php endif; ?>
 <a href="https://wa.me/447597019065?text=Hi%2C%20I%27m%20interested%20in%20applying%20for%20a%20role"
     class="whatsapp-float"
     target="_blank"

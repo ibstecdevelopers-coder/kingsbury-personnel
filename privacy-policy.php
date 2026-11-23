@@ -373,12 +373,21 @@
             training providers, HMRC, pension providers, regulators, legal
             advisers and IT providers where
             necessary.</p>
+          <p>Our contact CV application form uses Google reCAPTCHA to help
+            identify automated submissions. When you use this form, Google
+            processes technical information and interaction signals from your
+            browser for this purpose. Google's
+            <a class="inline-link" href="https://policies.google.com/privacy"
+              target="_blank" rel="noopener noreferrer">Privacy Policy</a> and
+            <a class="inline-link" href="https://policies.google.com/terms"
+              target="_blank" rel="noopener noreferrer">Terms of Service</a>
+            apply.</p>
         </section>
 
         <section id="international-transfers">
           <h2><span class="policy-num">07</span>International Transfers</h2>
-          <p>We do not routinely transfer personal data outside the UK.
-            Where transfers occur, appropriate
+          <p>Google reCAPTCHA may process technical information outside the UK.
+            Where international transfers occur, appropriate
             safeguards will be implemented.</p>
         </section>
 

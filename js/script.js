@@ -1,4 +1,52 @@
 (() => {
+  // ---- Shared reCAPTCHA helper (contact form + lead modal) ----
+  const kpCaptcha = (() => {
+    const widgets = new Map(); // .g-recaptcha element -> widget id
+
+    const insideClosedModal = el => {
+      const modal = el.closest('#lead-magnet');
+      return !!modal && !modal.classList.contains('is-open');
+    };
+
+    const render = el => {
+      if (!el || widgets.has(el) || !window.grecaptcha?.render || insideClosedModal(el)) return;
+      try {
+        const id = window.grecaptcha.render(el, {
+          sitekey: el.dataset.sitekey,
+          theme: 'light'
+        });
+        widgets.set(el, id);
+      } catch (error) {
+        console.warn('reCAPTCHA render failed:', error);
+      }
+    };
+
+    return {
+      render,
+      renderAll: () => document.querySelectorAll('.g-recaptcha').forEach(render),
+      isRendered: el => widgets.has(el),
+      getResponse: el => {
+        if (!widgets.has(el)) return '';
+        try {
+          return window.grecaptcha.getResponse(widgets.get(el)) || '';
+        } catch {
+          return '';
+        }
+      },
+      reset: el => {
+        if (!widgets.has(el)) return;
+        try {
+          window.grecaptcha.reset(widgets.get(el));
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+  })();
+  window.kpCaptcha = kpCaptcha;
+  // If the Google API finished loading before this file ran, render now.
+  if (window.kpRecaptchaApiReady) kpCaptcha.renderAll();
+
   const LEAD_STORAGE_KEY = 'kpLeadMagnetSubmitted';
 
   const hasSubmittedLead = () => {
@@ -108,6 +156,7 @@ function openLeadMagnetWhenAllowed() {
     leadMagnet.hidden = false;
     leadMagnet.classList.add('is-open');
     document.body.classList.add('lead-magnet-open');
+    kpCaptcha.renderAll();
     window.setTimeout(() => {
       document.getElementById('lead-name')?.focus();
     }, 50);
@@ -185,11 +234,27 @@ function openLeadMagnetWhenAllowed() {
       return;
     }
 
+    const captchaWidget = leadForm.querySelector('.g-recaptcha');
+    if (captchaWidget) kpCaptcha.render(captchaWidget);
+    const captchaToken = captchaWidget ? kpCaptcha.getResponse(captchaWidget) : '';
+    if (captchaWidget && !captchaToken) {
+      leadStatus.textContent = kpCaptcha.isRendered(captchaWidget) ?
+        'Please complete the CAPTCHA check before submitting.' :
+        'The CAPTCHA could not load. Please refresh the page (and disable any ad-blocker) and try again.';
+      leadStatus.className = 'lead-magnet-status error';
+      captchaWidget.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'center'
+      });
+      return;
+    }
+
     trackLeadMagnetSubmit();
 
     const payload = new FormData(leadForm);
     payload.set('formType', 'lead');
     payload.set('kp_hp', '');
+    if (captchaToken) payload.set('g-recaptcha-response', captchaToken);
     payload.delete('website');
 
     if (leadSubmit) {
@@ -222,6 +287,7 @@ function openLeadMagnetWhenAllowed() {
       requiredFields.forEach(field => field.removeAttribute('aria-invalid'));
       window.setTimeout(() => closeLeadMagnet(), 1600);
     } catch (error) {
+      if (captchaWidget) kpCaptcha.reset(captchaWidget);
       leadStatus.textContent = error.message || 'We could not send your details just now. Please try again.';
       leadStatus.className = 'lead-magnet-status error';
     } finally {
@@ -538,8 +604,24 @@ function openLeadMagnetWhenAllowed() {
       return;
     }
 
+    const captchaWidget = form.querySelector('.g-recaptcha');
+    if (captchaWidget) kpCaptcha.render(captchaWidget);
+    const captchaToken = captchaWidget ? kpCaptcha.getResponse(captchaWidget) : '';
+    if (captchaWidget && !captchaToken) {
+      formStatus.textContent = kpCaptcha.isRendered(captchaWidget) ?
+        'Please complete the CAPTCHA check before submitting your application.' :
+        'The CAPTCHA could not load. Please refresh the page (and disable any ad-blocker) and try again.';
+      formStatus.className = 'form-status error';
+      captchaWidget.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'center'
+      });
+      return;
+    }
+
     const payload = new FormData(form);
     payload.set('kp_hp', '');
+    if (captchaToken) payload.set('g-recaptcha-response', captchaToken);
     payload.delete('website');
 
     const cvInput = form.querySelector('#cv-upload');
@@ -580,6 +662,7 @@ function openLeadMagnetWhenAllowed() {
       window.location.href = 'thank-you.php';
       return; // stop here so the `finally` block doesn't re-enable the button on an unloading page
     } catch (error) {
+      if (captchaWidget) kpCaptcha.reset(captchaWidget);
       const failedToFetch = /failed to fetch/i.test(error.message || '');
       formStatus.textContent = failedToFetch ?
         'Open https://kingsburypersonnel.com/ in your browser and submit the form there. Previews and Live Server cannot send the email.' :
