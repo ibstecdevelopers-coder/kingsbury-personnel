@@ -17,6 +17,21 @@ $submittedSpecialism = htmlspecialchars((string) ($submittedApplication['special
 $kpSkipMetaTracking = ($submittedApplication['type'] ?? '') === 'application'
   && strcasecmp(trim((string) ($submittedApplication['sponsorship'] ?? '')), 'No') === 0;
 
+// Applicants who failed the contact-form eligibility screening see a different message.
+$disqualifyReason = ($submittedApplication['type'] ?? '') === 'application'
+  ? (string) ($submittedApplication['disqualified'] ?? '')
+  : '';
+$disqualifiedMessages = [
+  'not_uk_resident' => 'At present we can only consider applications from candidates who are currently residing in the UK, so we are unable to progress your application at this time.',
+  'requires_visa_sponsorship' => 'Unfortunately we are unable to offer visa sponsorship. We can only consider candidates who are British Citizens, hold Indefinite Leave to Remain (ILR), or hold another visa with a permanent/unrestricted right to work in the UK.',
+  'no_nmc_registration' => 'Our Registered Nurse vacancies require full qualification and valid NMC registration, so we are unable to progress your application for a nursing role. If you are interested in care or support worker roles, you are welcome to apply for those instead.',
+];
+$isDisqualified = isset($disqualifiedMessages[$disqualifyReason]);
+
+// Disqualified leads are reported via the disqualified_lead event on the contact page,
+// so they must not also be counted as a SubmitCandidateProfile conversion here.
+$kpSkipCandidateProfileEvent = $kpSkipMetaTracking || $isDisqualified;
+
 // Delete session data immediately
 unset($_SESSION['submitted_application']);
 unset($_SESSION['form_submitted']);
@@ -62,8 +77,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   PARTY CONFETTI CONTAINER
-========================================= */
+    PARTY CONFETTI CONTAINER
+    ========================================= */
 
     .party-container {
       position: fixed;
@@ -78,8 +93,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   PARTY POPPER
-========================================= */
+    PARTY POPPER
+    ========================================= */
 
     .party-popper {
       position: fixed;
@@ -128,8 +143,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   CONFETTI PIECES
-========================================= */
+    CONFETTI PIECES
+    ========================================= */
 
     .confetti {
       position: fixed;
@@ -199,8 +214,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   THANK YOU CARD
-========================================= */
+    THANK YOU CARD
+    ========================================= */
 
     .thank-you-card {
 
@@ -247,8 +262,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   CHECK BADGE
-========================================= */
+    CHECK BADGE
+    ========================================= */
 
     .check-badge {
       position: relative;
@@ -291,6 +306,17 @@ unset($_SESSION['form_submitted']);
       }
     }
 
+    /* Alert variant for disqualified leads */
+    .check-badge.alert-badge {
+      border-color: #f59e0b;
+      box-shadow:
+        0 12px 30px rgba(245, 158, 11, .25);
+    }
+
+    .check-badge.alert-badge svg {
+      stroke: #f59e0b;
+    }
+
     .check-badge svg {
 
       width: 40px;
@@ -308,8 +334,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   HEADING
-========================================= */
+    HEADING
+    ========================================= */
 
     .thank-you-heading {
 
@@ -331,8 +357,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   MESSAGE
-========================================= */
+    MESSAGE
+    ========================================= */
 
     .thank-you-message {
 
@@ -351,8 +377,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   BUTTONS
-========================================= */
+    BUTTONS
+    ========================================= */
 
     .thank-you-actions {
 
@@ -463,8 +489,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   MOBILE
-========================================= */
+    MOBILE
+    ========================================= */
 
     @media (max-width: 600px) {
 
@@ -522,8 +548,8 @@ unset($_SESSION['form_submitted']);
 
 
     /* =========================================
-   REDUCED MOTION
-========================================= */
+    REDUCED MOTION
+    ========================================= */
 
     @media (prefers-reduced-motion: reduce) {
 
@@ -588,8 +614,9 @@ unset($_SESSION['form_submitted']);
 <body>
   <!-- ========================================
      PARTY POPPER + CONFETTI
-========================================= -->
+  ========================================= -->
 
+  <?php if (!$isDisqualified): ?>
   <div
     class="party-container"
     id="partyContainer">
@@ -599,14 +626,27 @@ unset($_SESSION['form_submitted']);
     </div>
 
   </div>
+  <?php endif; ?>
 
 
   <!-- ========================================
      THANK YOU CARD
-========================================= -->
+  ========================================= -->
 
   <div class="thank-you-card">
 
+    <?php if ($isDisqualified): ?>
+    <div
+      class="check-badge alert-badge"
+      aria-hidden="true">
+
+      <svg viewBox="0 0 24 24">
+        <line x1="12" y1="6" x2="12" y2="13"></line>
+        <line x1="12" y1="17.5" x2="12" y2="17.5"></line>
+      </svg>
+
+    </div>
+    <?php else: ?>
     <div
       class="check-badge"
       aria-hidden="true">
@@ -620,23 +660,39 @@ unset($_SESSION['form_submitted']);
       </svg>
 
     </div>
+    <?php endif; ?>
 
 
-    <h1 class="thank-you-heading">
-      Thank You!
-    </h1>
+    <?php if ($isDisqualified): ?>
+      <h1 class="thank-you-heading">
+        Thank You for Your Interest
+      </h1>
+
+      <p class="thank-you-message">
+
+        We have received your details.
+        <?= htmlspecialchars($disqualifiedMessages[$disqualifyReason], ENT_QUOTES, 'UTF-8') ?>
+
+        You are still welcome to download our candidate guide below.
+
+      </p>
+    <?php else: ?>
+      <h1 class="thank-you-heading">
+        Thank You!
+      </h1>
 
 
-    <p class="thank-you-message">
+      <p class="thank-you-message">
 
-      Your application has been received.
-      One of our recruitment consultants
-      will be in touch shortly.
+        Your application has been received.
+        One of our recruitment consultants
+        will be in touch shortly.
 
-      In the meantime, feel free
-      to download our candidate guide below.
+        In the meantime, feel free
+        to download our candidate guide below.
 
-    </p>
+      </p>
+    <?php endif; ?>
 
 
     <div class="thank-you-actions">
@@ -718,6 +774,9 @@ unset($_SESSION['form_submitted']);
           document.getElementById(
             "partyContainer"
           );
+
+        // No party popper for disqualified leads.
+        if (!container) return;
 
 
         /* ======================================
@@ -889,24 +948,50 @@ unset($_SESSION['form_submitted']);
     </script>
   <?php endif; ?>
   <?php include 'cookie-consent.html'; ?>
-  <?php if (!$kpSkipMetaTracking): ?>
-  <script>
-    function trackCandidateProfile() {
-      var consent = typeof ccGetConsent === 'function' ? ccGetConsent() : null;
-      if (consent && consent.marketing === true && !window.__kpSubmitCandidateProfileSent && typeof fbq === 'function') {
-        window.__kpSubmitCandidateProfileSent = true;
-        fbq('track', 'SubmitCandidateProfile');
+  <?php if (!$kpSkipCandidateProfileEvent): ?>
+    <script>
+      function trackCandidateProfile() {
+        var consent = typeof ccGetConsent === 'function' ? ccGetConsent() : null;
+        if (consent && consent.marketing === true && !window.__kpSubmitCandidateProfileSent && typeof fbq === 'function') {
+          window.__kpSubmitCandidateProfileSent = true;
+          fbq('track', 'SubmitCandidateProfile');
+        }
       }
-    }
 
-    if (window.__kpMetaMarketingReady) {
-      trackCandidateProfile();
-    } else {
-      document.addEventListener('kp:marketing-consent', trackCandidateProfile, {
-        once: true
-      });
-    }
-  </script>
+      if (window.__kpMetaMarketingReady) {
+        trackCandidateProfile();
+      } else {
+        document.addEventListener('kp:marketing-consent', trackCandidateProfile, {
+          once: true
+        });
+      }
+    </script>
+  <?php endif; ?>
+  <?php if ($isDisqualified): ?>
+    <script>
+      // Fired here (not on the contact page) so the request isn't cancelled by the
+      // redirect. The session data is cleared on load, so this fires once per submission.
+      function trackDisqualifiedLead() {
+        var consent = typeof ccGetConsent === 'function' ? ccGetConsent() : null;
+        if (consent && consent.marketing === true && !window.__kpDisqualifiedLeadSent && typeof fbq === 'function') {
+          window.__kpDisqualifiedLeadSent = true;
+          fbq('trackCustom', 'disqualified_lead', {
+            content_name: 'Candidate Application',
+            content_category: 'Candidate',
+            reason: <?= json_encode($disqualifyReason) ?>,
+            specialism: <?= json_encode((string) ($submittedApplication['specialism'] ?? ''), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
+          });
+        }
+      }
+
+      if (window.__kpMetaMarketingReady) {
+        trackDisqualifiedLead();
+      } else {
+        document.addEventListener('kp:marketing-consent', trackDisqualifiedLead, {
+          once: true
+        });
+      }
+    </script>
   <?php endif; ?>
 
 </body>

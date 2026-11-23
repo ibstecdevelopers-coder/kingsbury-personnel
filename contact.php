@@ -11,11 +11,9 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
     <section id="contact" style="padding-top:150px;padding-bottom:150px" class="section contact-section">
         <div class="site-container contact-layout">
             <div class="contact-panel reveal">
-                <div class="eyebrow eyebrow-light"><span></span>Candidate
-                    enquiries</div>
-                <h2>Looking for Your Next Role?</h2>
-                <p>Tell us about yourself and your experience, and our recruitment
-                    team will get back to you with suitable roles.</p>
+                <div class="eyebrow eyebrow-light"><span></span>Care work that fits your life</div>
+                <h2>Send us your CV. We&#8217;ll find your next care role</h2>
+                <p>Share your details and upload your CV. A Kingsbury consultant will read it, then call you about care roles that match your experience. Free for carers, always.</p>
                 <div class="contact-details">
                     <div><span>Speak to our recruitment team</span><a
                             href="tel:+441494211220">+44 (0) 1494 211220</a></div>
@@ -52,8 +50,8 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
                         aria-hidden="true" />
 
                     <div class="form-heading">
-                        <span>Candidate Profile</span>
-                        <h3>Create your professional profile</h3>
+                        <span>TAKES 2 MINUTES</span>
+                        <h3>Tell us what you&#8217;re looking for</h3>
                     </div>
 
                     <div class="form-grid">
@@ -92,6 +90,56 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
                         </div>
 
                         <div class="field">
+                            <label for="experience">
+                                Years of Experience
+                            </label>
+
+                            <select id="experience"
+                                name="experience"
+                                required>
+
+                                <option value>Select experience</option>
+                                <option value="0-1 Year">0-1 Year</option>
+                                <option value="1-3 Years">1-3 Years</option>
+                                <option value="3-5 Years">3-5 Years</option>
+                                <option value="5-10 Years">5-10 Years</option>
+                                <option value="10+ Years">10+ Years</option>
+
+                            </select>
+                        </div>
+
+                        <div class="field field-full">
+                            <label for="visa-status">
+                                What is your current visa status? <span class="red">*</span>
+                            </label>
+                            <!-- <small class="field-hint">British Citizen, Indefinite Leave to Remain (ILR), or another visa with permanent/unrestricted right to work is acceptable.</small> -->
+                            <select id="visa-status"
+                                name="visaStatus"
+                                required>
+                                <option value="">Select your visa status</option>
+                                <option value="British Citizen">British Citizen</option>
+                                <option value="Indefinite Leave to Remain (ILR)">Indefinite Leave to Remain (ILR)</option>
+                                <option value="Other visa with permanent/unrestricted right to work">Other visa with permanent/unrestricted right to work</option>
+                                <option value="Visa with restricted right to work">Visa with restricted right to work</option>
+                                <option value="I require visa sponsorship">I require visa sponsorship</option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label for="postcode">
+                                What is your current UK postcode? <span class="red">*</span>
+                            </label>
+                            <input id="postcode"
+                                name="postcode"
+                                type="text"
+                                maxlength="8"
+                                autocomplete="postal-code"
+                                placeholder="e.g. EC1V 2NX"
+                                required />
+                            <!-- <small class="field-hint">This is required to assess your location and suitability for available vacancies.</small> -->
+                        </div>
+
+                        <div class="field">
                             <label for="specialism">
                                 Primary Specialism <span class="red">*</span>
                             </label>
@@ -114,42 +162,46 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
                                 <option value="Sous Chef">Sous Chef</option>
 
                             </select>
-
                         </div>
 
-                        <div class="field">
-                            <label for="experience">
-                                Years of Experience
+                        <div class="field" id="nmc-field" hidden>
+                            <label for="nmc-registration">
+                                Do you have a valid NMC registration? <span class="red">*</span>
                             </label>
-
-                            <select id="experience"
-                                name="experience"
-                                required>
-
-                                <option value>Select experience</option>
-                                <option value="0-1 Year">0-1 Year</option>
-                                <option value="1-3 Years">1-3 Years</option>
-                                <option value="3-5 Years">3-5 Years</option>
-                                <option value="5-10 Years">5-10 Years</option>
-                                <option value="10+ Years">10+ Years</option>
-
-                            </select>
-                        </div>
-
-                        <div class="field">
-                            <label for="sponsorship">
-                                Do you require sponsorship? <span class="red">*</span>
-                            </label>
-
-                            <select id="sponsorship"
-                                name="sponsorship"
-                                required>
+                            <select id="nmc-registration"
+                                name="nmcRegistered"
+                                disabled>
                                 <option value="">Select an option</option>
                                 <option value="Yes">Yes</option>
                                 <option value="No">No</option>
                             </select>
+                            <small class="field-hint">This is required to assess your eligibility for nursing roles.</small>
                         </div>
 
+                        <div class="field" id="nmc-pin-field" hidden>
+                            <label for="nmc-pin">
+                                NMC PIN <span class="red">*</span>
+                            </label>
+                            <input id="nmc-pin"
+                                name="nmcPin"
+                                type="text"
+                                maxlength="8"
+                                autocomplete="off"
+                                placeholder="e.g. 12A3456E"
+                                disabled />
+                            <small class="field-hint">Your 8-character NMC Personal Identification Number.</small>
+                        </div>
+
+                        <!-- ELIGIBILITY SCREENING -->
+                        <fieldset class="field field-full screening-radio" id="uk-resident-field">
+                            <legend>
+                                Are you currently residing in the UK? <span class="red">*</span>
+                            </legend>
+                            <div class="radio-options">
+                                <label><input type="radio" name="ukResident" value="Yes" required /> Yes</label>
+                                <label><input type="radio" name="ukResident" value="No" /> No</label>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <!-- CV UPLOAD -->

@@ -47,6 +47,11 @@ $fields = [
   'organisation' => trim((string) ($_POST['organisation'] ?? '')),
   'location' => trim((string) ($_POST['location'] ?? '')),
   'setting' => trim((string) ($_POST['setting'] ?? '')),
+  'ukResident' => trim((string) ($_POST['ukResident'] ?? '')),
+  'visaStatus' => trim((string) ($_POST['visaStatus'] ?? '')),
+  'postcode' => strtoupper(preg_replace('/\s+/', ' ', trim((string) ($_POST['postcode'] ?? ''))) ?? ''),
+  'nmcRegistered' => trim((string) ($_POST['nmcRegistered'] ?? '')),
+  'nmcPin' => strtoupper(preg_replace('/\s+/', '', trim((string) ($_POST['nmcPin'] ?? ''))) ?? ''),
 ];
 
 $isEmployer = $formType === 'employer';
@@ -63,11 +68,72 @@ $required = $isEmployer
   ? ['fullName', 'organisation', 'email', 'phone', 'specialism', 'experience', 'location', 'setting', 'details']
   : ($isLead
     ? ['fullName', 'specialism', 'email']
-    : ($isDataRights ? ['fullName', 'email', 'specialism'] : ['fullName', 'specialism', 'experience', 'email']));
+    : ($isDataRights ? ['fullName', 'email', 'specialism'] : ['fullName', 'specialism', 'experience', 'email', 'ukResident', 'visaStatus', 'postcode']));
+
+$isNurseRole = in_array($fields['specialism'], ['Nurse', 'RGN', 'RMN', 'RNLD'], true);
+if ($isCandidateApplication && $isNurseRole) {
+  $required[] = 'nmcRegistered';
+  if ($fields['nmcRegistered'] === 'Yes') {
+    $required[] = 'nmcPin';
+  }
+}
 
 foreach ($required as $requiredField) {
   if ($fields[$requiredField] === '') {
     $errors[] = $requiredField;
+  }
+}
+
+// Candidate eligibility screening (mirrors the client-side checks in js/script.js).
+// Disqualified applicants are still accepted, but flagged in the email and API payload
+// and shown a different message on the thank-you page.
+$disqualifyReason = null;
+if ($isCandidateApplication && !$errors) {
+  $acceptableVisaStatuses = [
+    'British Citizen',
+    'Indefinite Leave to Remain (ILR)',
+    'Other visa with permanent/unrestricted right to work',
+  ];
+  $knownVisaStatuses = array_merge($acceptableVisaStatuses, [
+    'Visa with restricted right to work',
+    'I require visa sponsorship',
+  ]);
+
+  if (!in_array($fields['ukResident'], ['Yes', 'No'], true)) {
+    $errors[] = 'ukResident';
+  }
+  if (!in_array($fields['visaStatus'], $knownVisaStatuses, true)) {
+    $errors[] = 'visaStatus';
+  }
+  if ($isNurseRole && !in_array($fields['nmcRegistered'], ['Yes', 'No'], true)) {
+    $errors[] = 'nmcRegistered';
+  }
+  if ($isNurseRole && $fields['nmcRegistered'] === 'Yes' && !preg_match('/^\d{2}[A-Z]\d{4}[A-Z]$/', $fields['nmcPin'])) {
+    respond(422, false, 'Please enter a valid NMC PIN (8 characters, for example 12A3456E).');
+  }
+  if (!$isNurseRole || $fields['nmcRegistered'] !== 'Yes') {
+    $fields['nmcPin'] = '';
+  }
+  if (!preg_match('/^(GIR ?0AA|[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2})$/', $fields['postcode'])) {
+    respond(422, false, 'Please enter a valid UK postcode (for example EC1V 2NX).');
+  }
+
+  if (!$errors) {
+    // The separate sponsorship dropdown was removed; derive the answer from visa status
+    // so the email and CRM payload still say whether sponsorship is needed.
+    $fields['sponsorship'] = in_array($fields['visaStatus'], $acceptableVisaStatuses, true) ? 'No' : 'Yes';
+
+    if ($fields['ukResident'] !== 'Yes') {
+      $disqualifyReason = 'not_uk_resident';
+    } elseif (!in_array($fields['visaStatus'], $acceptableVisaStatuses, true)) {
+      $disqualifyReason = 'requires_visa_sponsorship';
+    } elseif ($isNurseRole && $fields['nmcRegistered'] !== 'Yes') {
+      $disqualifyReason = 'no_nmc_registration';
+    }
+
+    if ($disqualifyReason !== null) {
+      logMailEvent('Disqualified candidate application (' . $disqualifyReason . ') screened; continuing submission.');
+    }
   }
 }
 
@@ -257,6 +323,34 @@ if (!$isLead && !$isDataRights && !$isEmployer) {
   $cvSize = formatFileSize((int) $cv['size']);
 }
 
+$disqualifyLabels = [
+  'not_uk_resident' => 'Not currently residing in the UK',
+  'requires_visa_sponsorship' => 'Requires visa sponsorship / no unrestricted right to work',
+  'no_nmc_registration' => 'No valid NMC registration (Registered Nurse vacancy)',
+];
+$fields['eligibility'] = $disqualifyReason === null
+  ? 'Eligible'
+  : 'DISQUALIFIED: ' . ($disqualifyLabels[$disqualifyReason] ?? $disqualifyReason);
+
+// Forward candidate applications to the CRM. A failure here is logged but never
+// blocks the applicant: the email to the recruitment team is still sent.
+if ($isCandidateApplication) {
+  try {
+    require_once __DIR__ . '/includes/application-api.php';
+    $apiResult = kp_api_post_application(
+      kp_build_application_payload($fields, $cv, attachmentMimeType($cvExtension), $disqualifyReason)
+    );
+    if ($apiResult['ok']) {
+      logMailEvent('Forwarded candidate application for ' . $fields['email'] . ' to CRM API (HTTP ' . $apiResult['status'] . ').');
+    } else {
+      logMailError('CRM API forward failed for ' . $fields['email'] . ': ' . $apiResult['error']
+        . ($apiResult['body'] !== '' ? ' | ' . mb_substr($apiResult['body'], 0, 500) : ''));
+    }
+  } catch (\Throwable $e) {
+    logMailError('CRM API forward threw an exception: ' . $e->getMessage());
+  }
+}
+
 try {
   $adminMail = createMailer($config);
   addAdminRecipients($adminMail, $config);
@@ -290,7 +384,8 @@ try {
     $adminMail->AltBody = buildLeadTextEmail($fields, $displayName, $submittedAt);
   } else {
     $adminMail->Subject = sprintf(
-      'New Candidate Application — %s (%s)',
+      '%sNew Candidate Application — %s (%s)',
+      $disqualifyReason !== null ? '[DISQUALIFIED] ' : '',
       $displayName,
       $fields['specialism']
     );
@@ -311,7 +406,9 @@ try {
     'name' => $displayName,
     'email' => $fields['email'],
     'specialism' => $fields['specialism'],
-    'sponsorship' => $fields['sponsorship'],
+    // Raw form answer (not the derived value) so thank-you.php's Meta tracking rule is unchanged.
+    'sponsorship' => trim((string) ($_POST['sponsorship'] ?? $_POST['on_behalf'] ?? '')),
+    'disqualified' => $disqualifyReason,
     'type' => $isEmployer ? 'employer' : ($isLead ? 'lead' : 'application'),
   ];
 
@@ -334,9 +431,15 @@ try {
         $visitorMail->Body = buildLeadCandidateHtmlEmail($fields, $displayName, $submittedAt);
         $visitorMail->AltBody = buildLeadCandidateTextEmail($fields, $displayName, $submittedAt);
       } else {
-        $visitorMail->Subject = 'Thank you for your application';
-        $visitorMail->Body = buildCandidateHtmlEmail($fields, $displayName, $submittedAt);
-        $visitorMail->AltBody = buildCandidateTextEmail($fields, $displayName, $submittedAt);
+        if ($disqualifyReason !== null) {
+          $visitorMail->Subject = 'Your application to Kingsbury Personnel';
+          $visitorMail->Body = buildDisqualifiedCandidateHtmlEmail($fields, $displayName, $submittedAt, $disqualifyReason);
+          $visitorMail->AltBody = buildDisqualifiedCandidateTextEmail($fields, $displayName, $submittedAt, $disqualifyReason);
+        } else {
+          $visitorMail->Subject = 'Thank you for your application';
+          $visitorMail->Body = buildCandidateHtmlEmail($fields, $displayName, $submittedAt);
+          $visitorMail->AltBody = buildCandidateTextEmail($fields, $displayName, $submittedAt);
+        }
       }
       if (!$isEmployer) {
         $wellbeingGuide = __DIR__ . '/assets/pdfs/Kingsbury Personnel Wellbeing Guide.pdf';
@@ -608,9 +711,15 @@ function buildHtmlEmail(array $fields, string $displayName, string $cvName, stri
 
   $personal = emailRow('Full legal name', $fields['fullName']);
 
-  $professional = emailRow('Primary specialism', $fields['specialism'])
+  $professional = emailRow('Eligibility', $fields['eligibility'] ?? '')
+    . emailRow('Primary specialism', $fields['specialism'])
     . emailRow('Years of experience', $fields['experience'])
-    . emailRow('Is sponsorship required?', $fields['sponsorship']);
+    . emailRow('Is sponsorship required?', $fields['sponsorship'])
+    . emailRow('Residing in the UK?', $fields['ukResident'])
+    . emailRow('Visa status', $fields['visaStatus'])
+    . emailRow('Current UK postcode', $fields['postcode'])
+    . ($fields['nmcRegistered'] !== '' ? emailRow('Registered Nurse with valid NMC registration?', $fields['nmcRegistered']) : '')
+    . ($fields['nmcPin'] !== '' ? emailRow('NMC PIN', $fields['nmcPin']) : '');
 
   $contact = emailRow('Email address', $fields['email'])
     . emailRow('Phone', $fields['phone']);
@@ -714,8 +823,15 @@ function buildTextEmail(array $fields, string $displayName, string $cvName, stri
     'Full legal name: ' . $fields['fullName'],
     '',
     'PROFESSIONAL DETAILS',
+    'Eligibility: ' . ($fields['eligibility'] ?? ''),
     'Primary specialism: ' . $fields['specialism'],
     'Years of experience: ' . $fields['experience'],
+    'Is sponsorship required?: ' . $blank($fields['sponsorship']),
+    'Residing in the UK?: ' . $blank($fields['ukResident']),
+    'Visa status: ' . $blank($fields['visaStatus']),
+    'Current UK postcode: ' . $blank($fields['postcode']),
+    'Registered Nurse with valid NMC registration?: ' . ($fields['nmcRegistered'] !== '' ? $fields['nmcRegistered'] : 'Not applicable'),
+    'NMC PIN: ' . ($fields['nmcPin'] !== '' ? $fields['nmcPin'] : 'Not applicable'),
     '',
     'CONTACT',
     'Email address: ' . $fields['email'],
@@ -785,6 +901,7 @@ function buildCandidateHtmlEmail(array $fields, string $displayName, string $sub
           </tr>
           <tr>
             <td style="background:#08172b;padding:18px 32px;">
+              <p style="margin:0;font-size:11px;color:#6f8296;">DISCLAIMER! This email message and any attachments are strictly confidential and may contain information that is legally privileged or exempt from disclosure under applicable law. If you are not the intended recipient, please notify the sender immediately by return email and permanently delete this message and any attachments. Any unauthorized review, use, disclosure, dissemination, distribution, or copying of this communication is strictly prohibited.</p></br>
               <p style="margin:0;font-size:11px;color:#6f8296;">Kingsbury Personnel &middot; 124 City Road, London, England, EC1V 2NX</p>
             </td>
           </tr>
@@ -794,6 +911,105 @@ function buildCandidateHtmlEmail(array $fields, string $displayName, string $sub
   </table>
 </body>
 </html>';
+}
+
+/** Candidate-facing explanation for each disqualification reason (matches thank-you.php). */
+function disqualifiedCandidateMessage(string $reason): string
+{
+  $messages = [
+    'not_uk_resident' => 'At present we can only consider applications from candidates who are currently residing in the UK, so we are unable to progress your application at this time.',
+    'requires_visa_sponsorship' => 'Unfortunately we are unable to offer visa sponsorship. We can only consider candidates who are British Citizens, hold Indefinite Leave to Remain (ILR), or hold another visa with a permanent/unrestricted right to work in the UK.',
+    'no_nmc_registration' => 'Our Registered Nurse vacancies require full qualification and valid NMC registration, so we are unable to progress your application for a nursing role. If you are interested in care or support worker roles, you are welcome to apply for those instead.',
+  ];
+  return $messages[$reason] ?? 'Unfortunately your application does not meet the eligibility criteria for our current vacancies, so we are unable to progress it at this time.';
+}
+
+function buildDisqualifiedCandidateHtmlEmail(array $fields, string $displayName, string $submittedAt, string $reason): string
+{
+  return '<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your application</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="max-width:640px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e4e8ee;">
+          <tr>
+            <td style="background:#0b1f3a;padding:28px 32px;">
+              <p style="margin:0 0 8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#c6831d;font-weight:700;">Kingsbury Personnel</p>
+              <h1 style="margin:0;font-size:24px;line-height:1.3;color:#ffffff;font-weight:700;">Thank you for your interest</h1>
+              <p style="margin:10px 0 0;color:#c9d2dc;font-size:14px;line-height:1.5;">We have received your details.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px 8px;">
+              <p style="margin:0 0 14px;font-size:16px;color:#152033;line-height:1.6;">Dear ' . h($displayName) . ',</p>
+              <p style="margin:0 0 18px;font-size:15px;color:#344054;line-height:1.7;">Thank you for applying to Kingsbury Personnel and for taking the time to share your details with us.</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#fff8eb;border-left:3px solid #f59e0b;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#b45309;font-weight:700;">About your application</p>
+                    <p style="margin:0;font-size:15px;color:#152033;line-height:1.7;">' . h(disqualifiedCandidateMessage($reason)) . '</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:18px 0 0;font-size:15px;color:#344054;line-height:1.7;">If your circumstances change, you are very welcome to apply again. We have attached our Wellbeing Guide for you to keep.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:22px 32px 28px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8f5ef;border-left:3px solid #c6831d;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <p style="margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#92713b;font-weight:700;">Need to speak with us?</p>
+                    <p style="margin:0;font-size:14px;color:#152033;line-height:1.7;">Email <a href="mailto:info@kingsburypersonnel.com" style="color:#0b1f3a;font-weight:700;">info@kingsburypersonnel.com</a><br>Phone <a href="tel:+441494211220" style="color:#0b1f3a;font-weight:700;">+44 (0) 1494 211220</a></p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:18px 0 0;font-size:12px;color:#98a2b3;">Submitted ' . h($submittedAt) . ' (UK time).</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#08172b;padding:18px 32px;">
+              <p style="margin:0;font-size:11px;color:#6f8296;">DISCLAIMER! This email message and any attachments are strictly confidential and may contain information that is legally privileged or exempt from disclosure under applicable law. If you are not the intended recipient, please notify the sender immediately by return email and permanently delete this message and any attachments. Any unauthorized review, use, disclosure, dissemination, distribution, or copying of this communication is strictly prohibited.</p></br>
+              <p style="margin:0;font-size:11px;color:#6f8296;">Kingsbury Personnel &middot; 124 City Road, London, England, EC1V 2NX</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>';
+}
+
+function buildDisqualifiedCandidateTextEmail(array $fields, string $displayName, string $submittedAt, string $reason): string
+{
+  return implode("\n", [
+    'KINGSBURY PERSONNEL',
+    'Thank you for your interest',
+    '',
+    'Dear ' . $displayName . ',',
+    '',
+    'Thank you for applying to Kingsbury Personnel and for taking the time to share your details with us.',
+    '',
+    'ABOUT YOUR APPLICATION',
+    disqualifiedCandidateMessage($reason),
+    '',
+    'If your circumstances change, you are very welcome to apply again.',
+    'Our Wellbeing Guide is attached for you to keep.',
+    '',
+    'NEED TO SPEAK WITH US?',
+    'Email: info@kingsburypersonnel.com',
+    'Phone: +44 (0) 1494 211220',
+    '',
+    'Submitted ' . $submittedAt . ' (UK time).',
+    'Kingsbury Personnel, 124 City Road, London, England, EC1V 2NX',
+  ]);
 }
 
 function buildCandidateTextEmail(array $fields, string $displayName, string $submittedAt): string
@@ -1008,9 +1224,12 @@ function buildEmployerConfirmationHtmlEmail(array $fields, string $displayName, 
           </td></tr></table>
           <p style="margin:18px 0 0;font-size:12px;color:#98a2b3;">Submitted ' . h($submittedAt) . ' (UK time).</p>
         </td></tr>
-        <tr><td style="background:#08172b;padding:18px 32px;">
-          <p style="margin:0;font-size:11px;color:#6f8296;">Kingsbury Personnel &middot; 124 City Road, London, England, EC1V 2NX</p>
-        </td></tr>
+        <tr>
+          <td style="background:#08172b;padding:18px 32px;">
+            <p style="margin:0;font-size:11px;color:#6f8296;">DISCLAIMER! This email message and any attachments are strictly confidential and may contain information that is legally privileged or exempt from disclosure under applicable law. If you are not the intended recipient, please notify the sender immediately by return email and permanently delete this message and any attachments. Any unauthorized review, use, disclosure, dissemination, distribution, or copying of this communication is strictly prohibited.</p></br>
+            <p style="margin:0;font-size:11px;color:#6f8296;">Kingsbury Personnel &middot; 124 City Road, London, England, EC1V 2NX</p>
+          </td>
+        </tr>
       </table>
     </td></tr>
   </table>
@@ -1085,6 +1304,7 @@ function buildLeadCandidateHtmlEmail(array $fields, string $displayName, string 
           </tr>
           <tr>
             <td style="background:#08172b;padding:18px 32px;">
+              <p style="margin:0;font-size:11px;color:#6f8296;">DISCLAIMER! This email message and any attachments are strictly confidential and may contain information that is legally privileged or exempt from disclosure under applicable law. If you are not the intended recipient, please notify the sender immediately by return email and permanently delete this message and any attachments. Any unauthorized review, use, disclosure, dissemination, distribution, or copying of this communication is strictly prohibited.</p></br>
               <p style="margin:0;font-size:11px;color:#6f8296;">Kingsbury Personnel &middot; 124 City Road, London, England, EC1V 2NX</p>
             </td>
           </tr>

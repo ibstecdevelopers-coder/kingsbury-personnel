@@ -1510,6 +1510,67 @@ textarea:focus-visible {
   box-shadow: 0 0 0 3px rgba(195, 63, 63, .08);
 }
 
+/* Eligibility screening fields */
+.field[hidden] {
+  display: none;
+}
+
+.field-hint {
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.screening-radio {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.screening-radio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.screening-radio legend {
+  float: left; /* lets the legend sit in the flex row with the options */
+  color: #475467;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+  padding: 0;
+}
+
+.screening-radio .radio-options {
+  display: flex;
+  gap: 24px;
+}
+
+.screening-radio .radio-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #172033;
+  cursor: pointer;
+}
+
+.field .radio-options input[type="radio"] {
+  width: 18px;
+  min-height: 0;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--navy);
+}
+
+.screening-radio.is-invalid legend {
+  color: #c33f3f;
+}
+
 .checkbox-row {
   display: flex;
   align-items: flex-start;

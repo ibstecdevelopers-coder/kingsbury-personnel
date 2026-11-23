@@ -576,13 +576,60 @@ function openLeadMagnetWhenAllowed() {
   const selectedFile = document.getElementById('selected-file');
   const defaultSubmitLabel = submitButton?.innerHTML;
 
+  // ---- Eligibility screening ----
+  const NURSE_SPECIALISMS = ['Nurse', 'RGN', 'RMN', 'RNLD'];
+  const UK_POSTCODE_PATTERN = /^(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})$/i;
+  const specialismSelect = form?.querySelector('#specialism');
+  const nmcField = form?.querySelector('#nmc-field');
+  const nmcSelect = form?.querySelector('#nmc-registration');
+  const ukResidentField = form?.querySelector('#uk-resident-field');
+
+  const isNurseRole = () => NURSE_SPECIALISMS.includes(specialismSelect?.value || '');
+
+  const syncNmcField = () => {
+    if (!nmcField || !nmcSelect) return;
+    const show = isNurseRole();
+    nmcField.hidden = !show;
+    nmcSelect.disabled = !show;
+    nmcSelect.required = show;
+    if (!show) {
+      nmcSelect.value = '';
+      nmcSelect.removeAttribute('aria-invalid');
+    }
+    syncNmcPinField();
+  };
+
+  // NMC PIN: only shown and required when the applicant confirms NMC registration.
+  const NMC_PIN_PATTERN = /^\d{2}[A-Z]\d{4}[A-Z]$/;
+  const nmcPinField = form?.querySelector('#nmc-pin-field');
+  const nmcPinInput = form?.querySelector('#nmc-pin');
+
+  function syncNmcPinField() {
+    if (!nmcPinField || !nmcPinInput) return;
+    const show = isNurseRole() && nmcSelect?.value === 'Yes';
+    nmcPinField.hidden = !show;
+    nmcPinInput.disabled = !show;
+    nmcPinInput.required = show;
+    if (!show) {
+      nmcPinInput.value = '';
+      nmcPinInput.removeAttribute('aria-invalid');
+    }
+  }
+
+  specialismSelect?.addEventListener('change', syncNmcField);
+  nmcSelect?.addEventListener('change', syncNmcPinField);
+  syncNmcField();
+
   form?.addEventListener('submit', async event => {
     event.preventDefault();
+    syncNmcField();
     const requiredFields = [...form.querySelectorAll('[required]')];
     let firstInvalid = null;
 
     requiredFields.forEach(field => {
-      const invalid = field.type === 'checkbox' ?
+      const invalid = field.type === 'radio' ?
+        !form.querySelector(`input[name="${field.name}"]:checked`) :
+        field.type === 'checkbox' ?
         !field.checked :
         field.type === 'file' ?
         !field.files?.length :
@@ -590,6 +637,10 @@ function openLeadMagnetWhenAllowed() {
       field.setAttribute('aria-invalid', String(invalid));
       if (invalid && !firstInvalid) firstInvalid = field;
     });
+
+    if (ukResidentField) {
+      ukResidentField.classList.toggle('is-invalid', !form.querySelector('input[name="ukResident"]:checked'));
+    }
 
     const email = form.querySelector('#email');
     if (email?.value && !email.validity.valid) {
@@ -602,6 +653,32 @@ function openLeadMagnetWhenAllowed() {
       formStatus.className = 'form-status error';
       firstInvalid.focus();
       return;
+    }
+
+    // Disqualified applicants still submit: the server screens them, and the
+    // thank-you page shows a different message and fires the disqualified_lead event.
+
+    const postcode = form.querySelector('#postcode');
+    if (postcode) {
+      postcode.value = postcode.value.trim().toUpperCase().replace(/\s+/g, ' ');
+      if (!UK_POSTCODE_PATTERN.test(postcode.value)) {
+        postcode.setAttribute('aria-invalid', 'true');
+        formStatus.textContent = 'Please enter a valid UK postcode (for example EC1V 2NX).';
+        formStatus.className = 'form-status error';
+        postcode.focus();
+        return;
+      }
+    }
+
+    if (nmcPinInput && !nmcPinInput.disabled) {
+      nmcPinInput.value = nmcPinInput.value.replace(/\s+/g, '').toUpperCase();
+      if (!NMC_PIN_PATTERN.test(nmcPinInput.value)) {
+        nmcPinInput.setAttribute('aria-invalid', 'true');
+        formStatus.textContent = 'Please enter a valid NMC PIN (8 characters, for example 12A3456E).';
+        formStatus.className = 'form-status error';
+        nmcPinInput.focus();
+        return;
+      }
     }
 
     const captchaWidget = form.querySelector('.g-recaptcha');
