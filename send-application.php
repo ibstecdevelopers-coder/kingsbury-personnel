@@ -68,7 +68,7 @@ $required = $isEmployer
   ? ['fullName', 'organisation', 'email', 'phone', 'specialism', 'experience', 'location', 'setting', 'details']
   : ($isLead
     ? ['fullName', 'specialism', 'email']
-    : ($isDataRights ? ['fullName', 'email', 'specialism'] : ['fullName', 'specialism', 'experience', 'email', 'ukResident', 'visaStatus', 'postcode']));
+    : ($isDataRights ? ['fullName', 'email', 'specialism'] : ['fullName', 'specialism', 'experience', 'email', 'phone', 'ukResident', 'visaStatus', 'postcode']));
 
 $isNurseRole = in_array($fields['specialism'], ['Nurse', 'RGN', 'RMN', 'RNLD'], true);
 if ($isCandidateApplication && $isNurseRole) {
@@ -109,13 +109,20 @@ if ($isCandidateApplication && !$errors) {
     $errors[] = 'nmcRegistered';
   }
   if ($isNurseRole && $fields['nmcRegistered'] === 'Yes' && !preg_match('/^\d{2}[A-Z]\d{4}[A-Z]$/', $fields['nmcPin'])) {
-    respond(422, false, 'Please enter a valid NMC PIN (8 characters, for example 12A3456E).');
+    respond(422, false, 'Please check the highlighted fields.', ['nmcPin' => 'Please enter a valid NMC PIN (8 characters, for example 12A3456E).']);
   }
   if (!$isNurseRole || $fields['nmcRegistered'] !== 'Yes') {
     $fields['nmcPin'] = '';
   }
-  if (!preg_match('/^(GIR ?0AA|[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2})$/', $fields['postcode'])) {
-    respond(422, false, 'Please enter a valid UK postcode (for example EC1V 2NX).');
+  // The CRM API only accepts UK numbers; normalise to national format (07…) so it is saved.
+  $normalisedPhone = normaliseUkPhone($fields['phone']);
+  if ($normalisedPhone === null) {
+    respond(422, false, 'Please check the highlighted fields.', ['phone' => 'Please enter a valid UK phone number (for example 07700 900123).']);
+  }
+  $fields['phone'] = $normalisedPhone;
+  // Full postcode (TW15 1AB) or just the outward code (TW15, W1, B33); the CRM accepts both.
+  if (!preg_match('/^(GIR ?0AA|[A-Z]{1,2}\d[A-Z\d]?( ?\d[A-Z]{2})?)$/', $fields['postcode'])) {
+    respond(422, false, 'Please check the highlighted fields.', ['postcode' => 'Please enter a valid UK postcode (for example TW15 or TW15 1AB).']);
   }
 
   if (!$errors) {
@@ -202,29 +209,47 @@ if (!$isLead && !$isDataRights && !$isEmployer) {
   if (!$cv || ($cv['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
     $errors[] = 'cv';
   } elseif (($cv['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-    respond(400, false, 'Your CV could not be uploaded. Please try again with a PDF, DOC or DOCX file under 10MB.');
+    respond(400, false, 'Your CV could not be uploaded. Please try again with a PDF, DOC or DOCX file under 10MB.', ['cv' => 'Your CV could not be uploaded. Please try again with a PDF, DOC or DOCX file under 10MB.']);
   } else {
     $cvExtension = strtolower(pathinfo((string) $cv['name'], PATHINFO_EXTENSION));
     if (!in_array($cvExtension, $allowedExtensions, true)) {
-      respond(400, false, 'Please upload your CV as a PDF, DOC or DOCX file.');
+      respond(400, false, 'Please upload your CV as a PDF, DOC or DOCX file.', ['cv' => 'Please upload your CV as a PDF, DOC or DOCX file.']);
     }
     if (($cv['size'] ?? 0) > $maxBytes) {
-      respond(400, false, 'Your CV must be smaller than 10MB.');
+      respond(400, false, 'Your CV must be smaller than 10MB.', ['cv' => 'Your CV must be smaller than 10MB.']);
     }
     if (!is_uploaded_file((string) $cv['tmp_name'])) {
-      respond(400, false, 'The uploaded CV could not be verified. Please try again.');
+      respond(400, false, 'The uploaded CV could not be verified. Please try again.', ['cv' => 'The uploaded CV could not be verified. Please try again.']);
     }
   }
 }
 
 if ($errors) {
-  respond(422, false, $isLead
+  // Per-field messages so the form can show each error under its own field.
+  $fieldMessages = [
+    'fullName' => 'Please enter your full name.',
+    'email' => 'Please enter your email address.',
+    'phone' => 'Please enter your phone number.',
+    'specialism' => 'Please select your primary specialism.',
+    'experience' => 'Please select your years of experience.',
+    'ukResident' => 'Please tell us whether you currently live in the UK.',
+    'visaStatus' => 'Please select your visa status.',
+    'postcode' => 'Please enter your UK postcode.',
+    'nmcRegistered' => 'Please tell us whether you have a valid NMC registration.',
+    'nmcPin' => 'Please enter your NMC PIN.',
+    'cv' => 'Please upload your CV (PDF, DOC or DOCX, up to 10MB).',
+  ];
+  $fieldErrors = [];
+  foreach (array_unique($errors) as $errorField) {
+    $fieldErrors[$errorField] = $fieldMessages[$errorField] ?? 'Please complete this field.';
+  }
+  respond(422, false, $isCandidateApplication ? 'Please check the highlighted fields.' : ($isLead
     ? 'Please complete your name, email and employment type before submitting.'
     : ($isDataRights
       ? 'Please complete the required fields before submitting your request.'
       : ($isEmployer
         ? 'Please complete all required employer request fields before submitting.'
-        : 'Please complete the required fields and attach your CV before submitting.')));
+        : 'Please complete the required fields and attach your CV before submitting.'))), $fieldErrors);
 }
 
 if ($isCandidateApplication || $isLead || $isEmployer) {
@@ -239,7 +264,7 @@ if ($isCandidateApplication || $isLead || $isEmployer) {
   }
 
   if ($captchaToken === '') {
-    respond(422, false, 'Please complete the CAPTCHA check before submitting.');
+    respond(422, false, 'Please complete the CAPTCHA check before submitting.', ['g-recaptcha-response' => 'Please complete the CAPTCHA check before submitting.']);
   }
 
   $verificationPayload = http_build_query([
@@ -312,7 +337,7 @@ if ($isCandidateApplication || $isLead || $isEmployer) {
       : [];
     $errorSummary = $safeErrorCodes ? ' Error codes: ' . implode(', ', $safeErrorCodes) . '.' : '';
     logMailEvent('Rejected form submission with an invalid Google reCAPTCHA response.' . $errorSummary);
-    respond(422, false, 'CAPTCHA verification failed. Please try again.');
+    respond(422, false, 'CAPTCHA verification failed. Please try again.', ['g-recaptcha-response' => 'CAPTCHA verification failed. Please try again.']);
   }
 }
 
@@ -334,22 +359,22 @@ $fields['eligibility'] = $disqualifyReason === null
 
 // Forward candidate applications to the CRM. A failure here is logged but never
 // blocks the applicant: the email to the recruitment team is still sent.
-if ($isCandidateApplication) {
-  try {
-    require_once __DIR__ . '/includes/application-api.php';
-    $apiResult = kp_api_post_application(
-      kp_build_application_payload($fields, $cv, attachmentMimeType($cvExtension), $disqualifyReason)
-    );
-    if ($apiResult['ok']) {
-      logMailEvent('Forwarded candidate application for ' . $fields['email'] . ' to CRM API (HTTP ' . $apiResult['status'] . ').');
-    } else {
-      logMailError('CRM API forward failed for ' . $fields['email'] . ': ' . $apiResult['error']
-        . ($apiResult['body'] !== '' ? ' | ' . mb_substr($apiResult['body'], 0, 500) : ''));
-    }
-  } catch (\Throwable $e) {
-    logMailError('CRM API forward threw an exception: ' . $e->getMessage());
-  }
-}
+// if ($isCandidateApplication) {
+//   try {
+//     require_once __DIR__ . '/includes/application-api.php';
+//     $apiResult = kp_api_post_application(
+//       kp_build_application_payload($fields, $cv, attachmentMimeType($cvExtension), $disqualifyReason)
+//     );
+//     if ($apiResult['ok']) {
+//       logMailEvent('Forwarded candidate application for ' . $fields['email'] . ' to CRM API (HTTP ' . $apiResult['status'] . ').');
+//     } else {
+//       logMailError('CRM API forward failed for ' . $fields['email'] . ': ' . $apiResult['error']
+//         . ($apiResult['body'] !== '' ? ' | ' . mb_substr($apiResult['body'], 0, 500) : ''));
+//     }
+//   } catch (\Throwable $e) {
+//     logMailError('CRM API forward threw an exception: ' . $e->getMessage());
+//   }
+// }
 
 try {
   $adminMail = createMailer($config);
@@ -558,16 +583,52 @@ function addAdminRecipients(PHPMailer $mail, array $config): void
   }
 }
 
-function respond(int $status, bool $ok, string $message): never
+/**
+ * @param array<string,string> $fieldErrors form field name => message, shown under that field
+ */
+function respond(int $status, bool $ok, string $message, array $fieldErrors = []): never
 {
   http_response_code($status);
-  echo json_encode(['ok' => $ok, 'message' => $message], JSON_UNESCAPED_UNICODE);
+  $body = ['ok' => $ok, 'message' => $message];
+  if ($fieldErrors) {
+    $body['errors'] = $fieldErrors;
+  }
+  echo json_encode($body, JSON_UNESCAPED_UNICODE);
   exit;
 }
 
 function h(string $value): string
 {
   return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+/**
+ * Validate a UK phone number and return it in national format (e.g. 07700900123),
+ * or null if it is not a UK number. Accepts spaces, dashes, dots, brackets and
+ * +44 / 0044 / 44 prefixes, including the common "+44 (0) 7700 900123" form.
+ * Mirrors normaliseUkPhone() in js/script.js.
+ */
+function normaliseUkPhone(string $phone): ?string
+{
+  $phone = trim($phone);
+  if ($phone === '' || !preg_match('/^[\d\s().+\-]+$/', $phone)) {
+    return null;
+  }
+  $digits = preg_replace('/\D/', '', $phone) ?? '';
+
+  if (str_starts_with($digits, '0044') || str_starts_with($digits, '44')) {
+    $rest = substr($digits, str_starts_with($digits, '0044') ? 4 : 2);
+    if (str_starts_with($rest, '0')) { // "+44 (0) 7700 …"
+      $rest = substr($rest, 1);
+    }
+  } elseif (str_starts_with($digits, '0')) {
+    $rest = substr($digits, 1);
+  } else {
+    // No prefix at all: only accept a full 10-digit national number (e.g. 7700900123).
+    return preg_match('/^[1-9]\d{9}$/', $digits) ? '0' . $digits : null;
+  }
+
+  return preg_match('/^[1-9]\d{8,9}$/', $rest) ? '0' . $rest : null;
 }
 
 function formatFileSize(int $bytes): string

@@ -578,13 +578,31 @@ function openLeadMagnetWhenAllowed() {
 
   // ---- Eligibility screening ----
   const NURSE_SPECIALISMS = ['Nurse', 'RGN', 'RMN', 'RNLD'];
-  const UK_POSTCODE_PATTERN = /^(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})$/i;
+  // Full postcode (TW15 1AB) or just the outward code (TW15, W1, B33); the CRM accepts both.
+  const UK_POSTCODE_PATTERN = /^(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?(\s?\d[A-Z]{2})?)$/i;
   const specialismSelect = form?.querySelector('#specialism');
   const nmcField = form?.querySelector('#nmc-field');
   const nmcSelect = form?.querySelector('#nmc-registration');
   const ukResidentField = form?.querySelector('#uk-resident-field');
 
-  const isNurseRole = () => NURSE_SPECIALISMS.includes(specialismSelect?.value || '');
+  // UK phone: returns national format (07700900123) or null. Mirrors normaliseUkPhone() in send-application.php.
+  const normaliseUkPhone = value => {
+    const raw = String(value || '').trim();
+    if (!raw || !/^[\d\s().+\-]+$/.test(raw)) return null;
+    const digits = raw.replace(/\D/g, '');
+    let rest;
+    if (digits.startsWith('0044') || digits.startsWith('44')) {
+      rest = digits.slice(digits.startsWith('0044') ? 4 : 2);
+      if (rest.startsWith('0')) rest = rest.slice(1); // "+44 (0) 7700 …"
+    } else if (digits.startsWith('0')) {
+      rest = digits.slice(1);
+    } else {
+      return /^[1-9]\d{9}$/.test(digits) ? `0${digits}` : null;
+    }
+    return /^[1-9]\d{8,9}$/.test(rest) ? `0${rest}` : null;
+  };
+
+  const isNurseRole = () =>NURSE_SPECIALISMS.includes(specialismSelect?.value || '');
 
   const syncNmcField = () => {
     if (!nmcField || !nmcSelect) return;
@@ -594,7 +612,7 @@ function openLeadMagnetWhenAllowed() {
     nmcSelect.required = show;
     if (!show) {
       nmcSelect.value = '';
-      nmcSelect.removeAttribute('aria-invalid');
+      clearFieldError(nmcSelect);
     }
     syncNmcPinField();
   };
@@ -612,9 +630,165 @@ function openLeadMagnetWhenAllowed() {
     nmcPinInput.required = show;
     if (!show) {
       nmcPinInput.value = '';
-      nmcPinInput.removeAttribute('aria-invalid');
+      clearFieldError(nmcPinInput);
     }
   }
+
+  // ---- Per-field error messages (shown under each field) ----
+  const CV_EXTENSIONS = ['pdf', 'doc', 'docx'];
+  const CV_MAX_BYTES = 10 * 1024 * 1024;
+  const CAPTCHA_KEY = 'g-recaptcha-response';
+  const fieldKey = el => (el.classList?.contains('g-recaptcha') ? CAPTCHA_KEY : el.name);
+
+  const fieldByName = name => name === CAPTCHA_KEY ?
+    form.querySelector('.g-recaptcha') :
+    form.querySelector(`[name="${name}"]:not([disabled])`);
+
+  const errorElementFor = (field, create) => {
+    const key = fieldKey(field);
+    let el = form.querySelector(`.field-error[data-error-for="${key}"]`);
+    if (!el && create) {
+      el = document.createElement('p');
+      el.className = 'field-error';
+      el.dataset.errorFor = key;
+      el.id = `${key}-error`;
+      if (field.classList.contains('g-recaptcha')) {
+        field.after(el);
+      } else {
+        (field.closest('.field, .screening-radio, .cv-upload, .checkbox-row') || field.parentElement).appendChild(el);
+      }
+    }
+    return el;
+  };
+
+  const groupOf = field => (field.type === 'radio' ? [...form.querySelectorAll(`[name="${field.name}"]`)] : [field]);
+
+  const setFieldError = (field, message) => {
+    if (!field) return;
+    const el = errorElementFor(field, true);
+    el.textContent = message;
+    el.hidden = false;
+    groupOf(field).forEach(t => {
+      t.setAttribute('aria-invalid', 'true');
+      t.setAttribute('aria-describedby', el.id);
+    });
+    field.closest('.screening-radio, .cv-upload')?.classList.add('is-invalid');
+  };
+
+  const clearFieldError = field => {
+    if (!field) return;
+    const el = errorElementFor(field, false);
+    if (el) {
+      el.textContent = '';
+      el.hidden = true;
+    }
+    groupOf(field).forEach(t => {
+      t.removeAttribute('aria-invalid');
+      if (el && t.getAttribute('aria-describedby') === el.id) t.removeAttribute('aria-describedby');
+    });
+    field.closest('.screening-radio, .cv-upload')?.classList.remove('is-invalid');
+  };
+
+  const clearAllFieldErrors = () => {
+    form.querySelectorAll('.field-error').forEach(el => {
+      el.textContent = '';
+      el.hidden = true;
+    });
+    form.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    formStatus.textContent = '';
+    formStatus.className = 'form-status';
+  };
+
+  const showFormErrorSummary = count => {
+    formStatus.textContent = count === 1 ?
+      'Please fix the highlighted field above.' :
+      `Please fix the ${count} highlighted fields above.`;
+    formStatus.className = 'form-status error';
+  };
+
+  const focusField = field => {
+    field.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'center'
+    });
+    if (!field.classList.contains('g-recaptcha')) field.focus({ preventScroll: true });
+  };
+
+  // One entry per field name (first radio of a group), skipping hidden/disabled/honeypot fields.
+  const candidateFields = () => {
+    const byName = new Map();
+    form.querySelectorAll('input[name], select[name], textarea[name]').forEach(el => {
+      if (el.disabled || el.type === 'hidden' || el.classList.contains('hp-field') || el.closest('.g-recaptcha')) return;
+      if (!byName.has(el.name)) byName.set(el.name, el);
+    });
+    return [...byName.values()];
+  };
+
+  // Returns an error message for the field, or '' when it is valid.
+  const validateCandidateField = field => {
+    if (field.disabled) return '';
+    const value = (field.value || '').trim();
+    switch (field.name) {
+      case 'fullName':
+        return value ? '' : 'Please enter your full name.';
+      case 'email':
+        if (!value) return 'Please enter your email address.';
+        return field.validity.valid ? '' : 'Please enter a valid email address (for example name@example.com).';
+      case 'phone':
+        if (!value) return 'Please enter your phone number.';
+        return normaliseUkPhone(value) ? '' : 'Please enter a valid UK phone number (for example 07700 900123).';
+      case 'experience':
+        return value ? '' : 'Please select your years of experience.';
+      case 'visaStatus':
+        return value ? '' : 'Please select your visa status.';
+      case 'postcode': {
+        const postcode = value.toUpperCase().replace(/\s+/g, ' ');
+        if (!postcode) return 'Please enter your UK postcode.';
+        return UK_POSTCODE_PATTERN.test(postcode) ? '' : 'Please enter a valid UK postcode (for example TW15 or TW15 1AB).';
+      }
+      case 'specialism':
+        return value ? '' : 'Please select your primary specialism.';
+      case 'nmcRegistered':
+        return value ? '' : 'Please tell us whether you have a valid NMC registration.';
+      case 'nmcPin': {
+        const pin = value.replace(/\s+/g, '').toUpperCase();
+        if (!pin) return 'Please enter your NMC PIN.';
+        return NMC_PIN_PATTERN.test(pin) ? '' : 'Please enter a valid NMC PIN (8 characters, for example 12A3456E).';
+      }
+      case 'ukResident':
+        return form.querySelector('input[name="ukResident"]:checked') ? '' : 'Please tell us whether you currently live in the UK.';
+      case 'cv': {
+        const file = field.files?.[0];
+        if (!file) return 'Please upload your CV (PDF, DOC or DOCX, up to 10MB).';
+        const extension = file.name.split('.').pop().toLowerCase();
+        if (!CV_EXTENSIONS.includes(extension)) return 'Please upload your CV as a PDF, DOC or DOCX file.';
+        return file.size > CV_MAX_BYTES ? 'Your CV must be smaller than 10MB.' : '';
+      }
+      default:
+        if (field.type === 'checkbox') return field.required && !field.checked ? 'Please tick this box to continue.' : '';
+        return field.required && !value ? 'Please complete this field.' : '';
+    }
+  };
+
+  // Shared with the CV drag-and-drop script in footer.php.
+  window.kpFieldErrors = { set: setFieldError, clear: clearFieldError };
+
+  // Clear an error as soon as the field is fixed; check a filled-in field when the user leaves it.
+  const recheckField = (field, showNew) => {
+    if (!field?.name || field.closest('.g-recaptcha') || field.classList.contains('hp-field')) return;
+    const message = validateCandidateField(field);
+    if (!message) clearFieldError(field);
+    else if (showNew || field.getAttribute('aria-invalid') === 'true') setFieldError(field, message);
+  };
+  form?.addEventListener('input', event => {
+    if (event.target.getAttribute('aria-invalid') === 'true') recheckField(event.target, false);
+  });
+  form?.addEventListener('change', event => recheckField(event.target, false));
+  form?.addEventListener('focusout', event => {
+    const field = event.target;
+    if (['text', 'email', 'tel'].includes(field.type) && field.value.trim()) recheckField(field, true);
+  });
 
   specialismSelect?.addEventListener('change', syncNmcField);
   nmcSelect?.addEventListener('change', syncNmcPinField);
@@ -623,78 +797,38 @@ function openLeadMagnetWhenAllowed() {
   form?.addEventListener('submit', async event => {
     event.preventDefault();
     syncNmcField();
-    const requiredFields = [...form.querySelectorAll('[required]')];
-    let firstInvalid = null;
 
-    requiredFields.forEach(field => {
-      const invalid = field.type === 'radio' ?
-        !form.querySelector(`input[name="${field.name}"]:checked`) :
-        field.type === 'checkbox' ?
-        !field.checked :
-        field.type === 'file' ?
-        !field.files?.length :
-        !field.value.trim();
-      field.setAttribute('aria-invalid', String(invalid));
-      if (invalid && !firstInvalid) firstInvalid = field;
+    // Validate every field and show each problem under its own field.
+    clearAllFieldErrors();
+    const problems = [];
+    candidateFields().forEach(field => {
+      const message = validateCandidateField(field);
+      if (message) problems.push([field, message]);
     });
-
-    if (ukResidentField) {
-      ukResidentField.classList.toggle('is-invalid', !form.querySelector('input[name="ukResident"]:checked'));
-    }
-
-    const email = form.querySelector('#email');
-    if (email?.value && !email.validity.valid) {
-      email.setAttribute('aria-invalid', 'true');
-      firstInvalid||= email;
-    }
-
-    if (firstInvalid) {
-      formStatus.textContent = 'Please complete the required fields and attach your CV before submitting.';
-      formStatus.className = 'form-status error';
-      firstInvalid.focus();
-      return;
-    }
-
-    // Disqualified applicants still submit: the server screens them, and the
-    // thank-you page shows a different message and fires the disqualified_lead event.
-
-    const postcode = form.querySelector('#postcode');
-    if (postcode) {
-      postcode.value = postcode.value.trim().toUpperCase().replace(/\s+/g, ' ');
-      if (!UK_POSTCODE_PATTERN.test(postcode.value)) {
-        postcode.setAttribute('aria-invalid', 'true');
-        formStatus.textContent = 'Please enter a valid UK postcode (for example EC1V 2NX).';
-        formStatus.className = 'form-status error';
-        postcode.focus();
-        return;
-      }
-    }
-
-    if (nmcPinInput && !nmcPinInput.disabled) {
-      nmcPinInput.value = nmcPinInput.value.replace(/\s+/g, '').toUpperCase();
-      if (!NMC_PIN_PATTERN.test(nmcPinInput.value)) {
-        nmcPinInput.setAttribute('aria-invalid', 'true');
-        formStatus.textContent = 'Please enter a valid NMC PIN (8 characters, for example 12A3456E).';
-        formStatus.className = 'form-status error';
-        nmcPinInput.focus();
-        return;
-      }
-    }
 
     const captchaWidget = form.querySelector('.g-recaptcha');
     if (captchaWidget) kpCaptcha.render(captchaWidget);
     const captchaToken = captchaWidget ? kpCaptcha.getResponse(captchaWidget) : '';
     if (captchaWidget && !captchaToken) {
-      formStatus.textContent = kpCaptcha.isRendered(captchaWidget) ?
-        'Please complete the CAPTCHA check before submitting your application.' :
-        'The CAPTCHA could not load. Please refresh the page (and disable any ad-blocker) and try again.';
-      formStatus.className = 'form-status error';
-      captchaWidget.scrollIntoView({
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-        block: 'center'
-      });
+      problems.push([captchaWidget, kpCaptcha.isRendered(captchaWidget) ?
+        'Please tick "I\'m not a robot" before submitting.' :
+        'The CAPTCHA could not load. Please refresh the page (and disable any ad-blocker) and try again.']);
+    }
+
+    if (problems.length) {
+      problems.forEach(([field, message]) => setFieldError(field, message));
+      showFormErrorSummary(problems.length);
+      focusField(problems[0][0]);
       return;
     }
+
+    // Send the cleaned-up values the server expects.
+    const postcode = form.querySelector('#postcode');
+    if (postcode) postcode.value = postcode.value.trim().toUpperCase().replace(/\s+/g, ' ');
+    if (nmcPinInput && !nmcPinInput.disabled) nmcPinInput.value = nmcPinInput.value.replace(/\s+/g, '').toUpperCase();
+
+    // Disqualified applicants still submit: the server screens them, and the
+    // thank-you page shows a different message and fires the disqualified_lead event.
 
     const payload = new FormData(form);
     payload.set('kp_hp', '');
@@ -722,6 +856,16 @@ function openLeadMagnetWhenAllowed() {
       }
 
       if (!response.ok || !result?.ok) {
+        const serverErrors = Object.entries(result?.errors || {})
+          .map(([name, message]) => [fieldByName(name), message])
+          .filter(([field]) => field);
+        if (serverErrors.length) {
+          if (captchaWidget) kpCaptcha.reset(captchaWidget);
+          serverErrors.forEach(([field, message]) => setFieldError(field, message));
+          showFormErrorSummary(serverErrors.length);
+          focusField(serverErrors[0][0]);
+          return;
+        }
         throw new Error(result?.message || 'We could not send your application just now.');
       }
 
@@ -729,7 +873,7 @@ function openLeadMagnetWhenAllowed() {
       formStatus.className = 'form-status success';
       markLeadSubmitted();
       form.reset();
-      requiredFields.forEach(field => field.removeAttribute('aria-invalid'));
+      clearAllFieldErrors();
       if (selectedFile) {
         selectedFile.textContent = '';
         selectedFile.style.color = '';

@@ -195,45 +195,31 @@
         }
     });
 
+    // Same rules as the server and CRM: PDF, DOC or DOCX up to 10MB.
+    // Errors show under the CV box via window.kpFieldErrors (js/script.js).
     function validateFile(file) {
-
-        const allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'];
-
-        const extension = file.name
-            .split('.')
-            .pop()
-            .toLowerCase();
-
-        // Check extension
+        const allowedExtensions = ['pdf', 'doc', 'docx'];
+        const extension = file.name.split('.').pop().toLowerCase();
+        let message = '';
         if (!allowedExtensions.includes(extension)) {
+            message = 'Please upload your CV as a PDF, DOC or DOCX file.';
+        } else if (file.size > 10 * 1024 * 1024) {
+            message = 'Your CV must be smaller than 10MB.';
+        }
 
-            selectedFile.textContent =
-                'Please upload a PDF, DOC, DOCX, JPG, JPEG, PNG, WEBP file.';
-
-            selectedFile.style.color = '#e53935';
-
-            cvInput.value = '';
-
+        if (message) {
+            selectedFile.textContent = '';
+            if (window.kpFieldErrors) {
+                window.kpFieldErrors.set(cvInput, message);
+            } else {
+                selectedFile.textContent = message;
+                selectedFile.style.color = '#b42318';
+            }
             return false;
         }
 
-        // Check 10MB
-        if (file.size > 10 * 1024 * 1024) {
-
-            selectedFile.textContent =
-                'File size must be less than 10MB.';
-
-            selectedFile.style.color = '#e53935';
-
-            cvInput.value = '';
-
-            return false;
-        }
-
-        // Valid file
-        selectedFile.textContent =
-            'Selected: ' + file.name;
-
+        window.kpFieldErrors?.clear(cvInput);
+        selectedFile.textContent = 'Selected: ' + file.name;
         selectedFile.style.color = '#7c3aed';
         return true;
     }
@@ -435,7 +421,7 @@ if ($kpCaptchaPageConfig['site_key'] !== '' && (!$kpIsContactPage || in_array($k
         <path fill="currentColor" d="M16.04 3C9.37 3 3.98 8.38 3.98 15.04c0 2.35.63 4.55 1.83 6.5L3 29l7.63-2.65a12.03 12.03 0 0 0 5.41 1.28h.01c6.67 0 12.05-5.38 12.05-12.04C28.1 8.38 22.71 3 16.04 3zm7.03 17.36c-.29.83-1.7 1.62-2.35 1.72-.6.09-1.35.13-2.17-.14-.5-.16-1.15-.37-1.98-.72-3.48-1.5-5.75-4.96-5.93-5.2-.17-.23-1.42-1.89-1.42-3.6s.9-2.56 1.22-2.91c.32-.34.7-.43.93-.43.23 0 .47 0 .67.01.22.01.5-.08.78.6.29.7.98 2.4 1.06 2.58.08.17.14.37.03.6-.11.23-.17.37-.34.57-.17.2-.35.44-.5.6-.17.17-.34.35-.15.68.2.34.87 1.44 1.87 2.33 1.29 1.15 2.37 1.51 2.71 1.68.34.17.54.14.74-.08.2-.23.85-.99 1.08-1.33.23-.34.46-.28.77-.17.31.11 1.98.93 2.32 1.1.34.17.57.26.65.4.08.15.08.83-.21 1.65z" />
     </svg>
 </a>
-<script src="js/script.js?v=20261123-dqevent"></script>
+<script src="js/script.js?v=20261124-fielderrors"></script>
 
 </body>
 

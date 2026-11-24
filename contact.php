@@ -85,7 +85,7 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
                             <input id="phone"
                                 name="phone"
                                 type="tel"
-                                autocomplete="tel" placeholder="Enter your phone number"
+                                autocomplete="tel" placeholder="e.g. 07700 900123"
                                 required />
                         </div>
 
@@ -134,7 +134,7 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
                                 type="text"
                                 maxlength="8"
                                 autocomplete="postal-code"
-                                placeholder="e.g. EC1V 2NX"
+                                placeholder="e.g. TW15 or TW15 1AB"
                                 required />
                             <!-- <small class="field-hint">This is required to assess your location and suitability for available vacancies.</small> -->
                         </div>

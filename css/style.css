@@ -1521,6 +1521,33 @@ textarea:focus-visible {
   line-height: 1.4;
 }
 
+/* Validation message shown under the field it belongs to */
+.field-error {
+  margin: 2px 0 0;
+  color: #b42318;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.field-error[hidden] {
+  display: none;
+}
+
+.cv-upload .field-error,
+.g-recaptcha + .field-error {
+  margin-top: 8px;
+}
+
+.cv-upload.is-invalid .cv-dropzone {
+  border-color: #c33f3f;
+  background: #fef3f2;
+}
+
+.screening-radio.is-invalid .radio-options {
+  color: #b42318;
+}
+
 .screening-radio {
   border: 0;
   margin: 0;
