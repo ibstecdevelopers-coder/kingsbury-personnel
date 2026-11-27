@@ -31,7 +31,39 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
                         will follow up with suitable roles.</p>
                 </div>
             </div>
+<style>
+    .visa-notice {
+    background: #FFF8E8;
+    border: 1px solid #F3D38A;
+    border-left: 4px solid #D99A24;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-top: 18px;
+    text-align: left;
+}
 
+.visa-notice-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #8A5A12;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+}
+
+.notice-icon {
+    font-size: 18px;
+}
+
+.visa-notice p {
+    color: #684C20;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0;
+}
+</style>
             <div class="form-wrap reveal">
                 <form id="candidate-form"
                     action="send-application.php"
@@ -51,7 +83,19 @@ $url = $saleId === '' ? '' : 'http://192.168.110.15/sales/' . rawurlencode($sale
 
                     <div class="form-heading">
                         <span>TAKES 2 MINUTES</span>
-                        <h3>Tell us what you&#8217;re looking for</h3>
+                        <h3>Tell us what you're looking for</h3>
+
+                        <div class="visa-notice">
+                            <div class="visa-notice-title">
+                                <span class="notice-icon">ⓘ</span>
+                                Important – Right to Work in the UK
+                            </div>
+                            <p>
+                                Please note that we are unable to offer visa sponsorship.
+                                To be considered for this opportunity, applicants must
+                                already have the legal right to work in the UK.
+                            </p>
+                        </div>
                     </div>
 
                     <div class="form-grid">

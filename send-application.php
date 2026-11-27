@@ -439,7 +439,8 @@ try {
 
   $sentTo = array_map(static fn(array $row): string => (string) $row[0], $adminMail->getToAddresses());
   $submissionType = $isEmployer ? 'employer request' : ($isLead ? 'lead' : 'application');
-  logMailEvent('Sent ' . $submissionType . ' to ' . implode(', ', $sentTo));
+  $sentCc = array_map(static fn(array $row): string => (string) $row[0], $adminMail->getCcAddresses());
+  logMailEvent('Sent ' . $submissionType . ' to ' . implode(', ', $sentTo) . ($sentCc ? ' (cc ' . implode(', ', $sentCc) . ')' : ''));
 
   $confirmationSent = false;
   if (!$isDataRights) {
@@ -580,6 +581,16 @@ function addAdminRecipients(PHPMailer $mail, array $config): void
 
   if ($added === 0) {
     throw new \RuntimeException('No valid to_email address is configured in config/mail.php.');
+  }
+
+  // Optional CC addresses (config 'cc_email'), skipping any already in To.
+  $toAddresses = array_map(static fn(array $row): string => strtolower((string) $row[0]), $mail->getToAddresses());
+  $ccRecipients = $config['cc_email'] ?? [];
+  foreach (is_array($ccRecipients) ? $ccRecipients : [$ccRecipients] as $address) {
+    $address = trim((string) $address);
+    if ($address !== '' && filter_var($address, FILTER_VALIDATE_EMAIL) && !in_array(strtolower($address), $toAddresses, true)) {
+      $mail->addCC($address);
+    }
   }
 }
 

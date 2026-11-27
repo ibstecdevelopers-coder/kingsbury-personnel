@@ -47,6 +47,13 @@
     <!-- Meta Pixel Code -->
     <link rel="preconnect" href="https://connect.facebook.net" crossorigin />
     <link rel="preconnect" href="https://www.facebook.com" />
+
+    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-T93C2MJM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+</script>
   
 </head>
 
